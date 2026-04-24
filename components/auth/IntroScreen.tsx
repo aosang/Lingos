@@ -1,31 +1,42 @@
 import { Colors } from "@/constants/theme";
 import { EBGaramond_500Medium_Italic, useFonts } from '@expo-google-fonts/eb-garamond';
+import AntDesign from "@expo/vector-icons/AntDesign";
+import Fontisto from "@expo/vector-icons/Fontisto";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect, useState } from "react";
-import { Dimensions, Keyboard, Platform, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Dimensions, Image, Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { verticalScale } from 'react-native-size-matters';
+import EmailAuth from "./EmailAuth";
 
 const {  width, height } = Dimensions.get("window")
 const videoSource = require("../../assets/video/broll.mp4")
+const logoSource = require("../../assets/images/lingos.png")
 
 const MENU_HEIGHT = 250
 const PEEK_MENU_HEIGHT = 50
 const CLOSED_POSITION = MENU_HEIGHT - PEEK_MENU_HEIGHT
 
 export default function IntroScreen () {
+  const insets = useSafeAreaInsets()
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0)
   const mainTextOpacity = useSharedValue(0)
   const scriptTextOpacity = useSharedValue(0)
-  const manuTraslateY = useSharedValue(CLOSED_POSITION)
+  const menuContentOpacity = useSharedValue(1)
+  const menuTranslateY = useSharedValue(0)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [isOpenMenu, setIsOpenMenu] = useState(true)
+  const [currentView, setCurrentView] = useState<'login' | 'email'>('login')
 
   const [fontsLoaded] = useFonts({
     EBGaramond_500Medium_Italic
@@ -61,7 +72,7 @@ export default function IntroScreen () {
 
   const menuAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{translateY: manuTraslateY.value}]
+      transform: [{translateY: menuTranslateY.value}]
     }
   })
 
@@ -79,6 +90,34 @@ export default function IntroScreen () {
     }
   })
 
+  const menuContentAnimatedStyle = useAnimatedStyle(() => {
+    return{
+      opacity: menuContentOpacity.value
+    }
+  })
+
+  const panGesture = Gesture.Pan().onEnd((event) => {
+    'worklet';
+    const swipeThreshold = 50
+    const isUpSwipe = event.translationY < -swipeThreshold
+    const isDownSwipe = event.translationY > swipeThreshold
+
+    if(isUpSwipe) {
+      // open menu
+      menuTranslateY.value = withSpring(0, {
+        damping: 30,
+        stiffness: 200,
+        mass: 1
+      })
+    }else if(isDownSwipe) {
+      menuTranslateY.value = withSpring(CLOSED_POSITION, {
+        damping: 30,
+        stiffness: 200,
+        mass: 1
+      })
+    }
+  })
+
   const animateTextIn = () => {
     mainTextOpacity.value = withTiming(1, {duration: 1200})
     scriptTextOpacity.value = withDelay(800, withTiming(1, {duration: 800}))
@@ -90,6 +129,30 @@ export default function IntroScreen () {
 
   const animateScriptIn = () => {
     scriptTextOpacity.value = withTiming(1, {duration: 600})
+  }
+
+  const animateMenu = (open: boolean) => {
+    menuTranslateY.value = withSpring(open? 0 : CLOSED_POSITION, {
+      damping: 30,
+      stiffness: 200,
+      mass: 1
+    })
+  }
+
+  const animateToMailView = (to: "email" | "login") => {
+    menuContentOpacity.value = withTiming(0, {duration: 200})
+
+    setTimeout(() => {
+      setCurrentView(to)
+      menuContentOpacity.value = withTiming(1, {duration: 300})
+    }, 200)
+  }
+
+
+  const handlePress = () => {
+    const newState = !isOpenMenu
+    setIsOpenMenu(newState)
+    animateMenu(newState)
   }
 
   useEffect(() => {
@@ -160,13 +223,73 @@ export default function IntroScreen () {
     return null
   }
 
-  const dynamicMenuHeight = keyboardHeight
+  const renderLoginView = () => (
+    <Animated.View style={[styles.viewContainer, menuContentAnimatedStyle]}>
+      <View style={styles.logoSection}>
+        <View style={styles.logoContainer}>
+          <Image source={logoSource} style={styles.logo} />
+          <Text style={styles.appName}>Lingos</Text>
+        </View>
+        <View style={styles.statsContainer}>
+          <Text style={styles.rating}>Start today</Text>
+        </View>
+      </View>
+      <View style={styles.buttonsContainer}>
+        <Pressable 
+          style={styles.loginButton}
+          onPress={()=> console.log('Apple login')}
+        >
+          <AntDesign 
+            name="apple" 
+            size={16} 
+            color="white" 
+            style={styles.appleIcon} 
+          />
+          <Text style={styles.buttonText}>Continue with Apple</Text>
+        </Pressable>
+
+        <Pressable 
+          style={styles.loginButton}
+          onPress={()=> console.log('Google login')}
+        >
+          <AntDesign 
+            name="google" 
+            size={16} 
+            color="white" 
+            style={styles.appleIcon} 
+          />
+          <Text style={styles.buttonText}>Continue with Google</Text>
+        </Pressable>
+
+        <Pressable 
+          style={styles.loginButton}
+          onPress={() => animateToMailView("email")}
+        >
+          <Fontisto 
+            name="email" 
+            size={16} 
+            color="white" 
+            style={styles.emailIcon} 
+          />
+          <Text style={styles.buttonText}>Continue with Email</Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  )
+
+  const renderEmailView = () => (
+    <View style={styles.viewContainer}>
+      <EmailAuth onBack={() => animateToMailView("login")} menuContentAnimatedStyle={menuContentAnimatedStyle} />
+    </View>
+  )
+
+  const dynamicMenuHeight = keyboardHeight > 0? MENU_HEIGHT + keyboardHeight + 50 : MENU_HEIGHT + 100
 
   return (
     <View style={{flex: 1, backgroundColor: "black"}}>
       <VideoView 
         nativeControls={false} 
-        player={player} 
+        player={player}
         contentFit="cover"
         style={[StyleSheet.absoluteFill, {width, height}]}
       />
@@ -185,9 +308,21 @@ export default function IntroScreen () {
       </View>
       {/* sliding menu with dyamic height */}
       {/* TODO: Gesture handler */}
-      <Animated.View style={[styles.menuContainer, menuAnimatedStyle]}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[
+          styles.menuContainer, menuAnimatedStyle, {
+            height: dynamicMenuHeight, paddingBottom: insets.bottom + 30
+          }
+        ]}>
+          <Pressable style={styles.handleContainer} onPress={handlePress}>
+            <View style={styles.handle} />
+          </Pressable>
 
-      </Animated.View>
+          <View style={styles.menuContent}>
+            {currentView === "login" ? renderLoginView() : renderEmailView()}
+          </View>
+        </Animated.View>
+      </GestureDetector>
     </View>
   )
 }
@@ -266,7 +401,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

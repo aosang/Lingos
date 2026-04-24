@@ -6,9 +6,11 @@ import 'react-native-reanimated';
 
 import IntroScreen from '@/components/auth/IntroScreen';
 import { useAuth } from '@/ctx/AuthContext';
+import { useDeepLinking } from '@/hooks/useDeepLinking';
 import AuthProvider from '@/providers/AuthProvider';
 import { useFonts } from "expo-font";
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Toaster } from "sonner-native";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -19,6 +21,9 @@ export function RootLayoutNav() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf")
   });
+
+  //  Handle deep linking for magic links
+  useDeepLinking()
 
   if(!loaded || loading) {
     return (
@@ -34,6 +39,7 @@ export function RootLayoutNav() {
       <ThemeProvider value={DefaultTheme}>
         <GestureHandlerRootView style={styles.container}>
           <IntroScreen />
+          <Toaster />
         </GestureHandlerRootView>
       </ThemeProvider>
     )
@@ -45,6 +51,7 @@ export function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
+      <Toaster />
       <StatusBar style="auto" />
     </ThemeProvider>
   );
