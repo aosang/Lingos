@@ -1,13 +1,13 @@
 import { supabase } from '@/utils/supabase'
 import Entypo from '@expo/vector-icons/Entypo'
-import * as Linking from 'expo-linking'
+import { makeRedirectUri } from "expo-auth-session"
 import { useState } from "react"
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from 'sonner-native'
 
 /** Same role as AuthSession.makeRedirectUri; avoids loading expo-crypto (native) via expo-auth-session. */
-const redirectTo = Linking.createURL('/')
+const redirectTo = makeRedirectUri()
 
 export default function EmailAuth ({
   onBack,
