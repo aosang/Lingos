@@ -1,3 +1,4 @@
+import { Paywall } from '@/components/subscription/Paywall'
 import { ThemedText } from '@/components/themed-text'
 import { Colors } from '@/constants/theme'
 import { useAuth } from '@/ctx/AuthContext'
@@ -64,7 +65,7 @@ export default function OnboardingScreen () {
   const [level, setLevel] = useState<string | null>(null)
   const [motivations, setMotivations] = useState<string[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
-  const [showPayWall, setShowPayWall] = useState(false)
+  const [showPayWall, setShowPayWall] = useState(true)
 
   const { refreshProfile } = useAuth()
 
@@ -301,6 +302,12 @@ export default function OnboardingScreen () {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      
+      <Paywall 
+        visible={showPayWall} 
+        onClose={() => router.replace('/explore')}
+      >  
+      </Paywall>
     </SafeAreaView>
   )
 }

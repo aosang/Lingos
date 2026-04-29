@@ -35,7 +35,6 @@ export const useDeepLinking = () => {
   const url = Linking.useLinkingURL()
 
   useEffect(() => {
-    console.log("Testing for linking");
     
     if(url) {
       createSessionFromUrl(url)

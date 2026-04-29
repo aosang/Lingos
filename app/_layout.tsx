@@ -31,7 +31,7 @@ export function RootLayoutNav() {
     if(!loading && session) {
       if(!profile || !profile.onboarding_completed) {
         const inOnboarding = segments[0] === "onboarding"
-
+        
         if(!inOnboarding) {
           router.replace('/onboarding')
         }
