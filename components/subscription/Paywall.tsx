@@ -1,9 +1,12 @@
 import { Colors } from "@/constants/theme";
+import { useAuth } from "@/ctx/AuthContext";
+import { supabase } from "@/utils/supabase";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const { width } = Dimensions.get("window")
 
@@ -88,10 +91,27 @@ export function Paywall ({
 
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual")
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const {refreshProfile} = useAuth()
   const selectedPlan = plans[billingCycle];
 
   const handleStartTrial = async () => {
+    try {
+      setIsStartingTrial(true)
 
+      const { error } = await supabase.functions.invoke("start-trial", {
+        body: {planId: selectedPlan.id}
+      })
+
+      if(error) throw error
+
+      await refreshProfile()
+      onClose()
+    }catch(err) {
+      console.error("Failed to start trail:", err)
+      toast.error("Could not start trail. Please try again.")
+    }finally {
+      setIsStartingTrial(false)
+    }
   }
 
   return (

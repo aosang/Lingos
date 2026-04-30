@@ -65,7 +65,7 @@ export default function OnboardingScreen () {
   const [level, setLevel] = useState<string | null>(null)
   const [motivations, setMotivations] = useState<string[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
-  const [showPayWall, setShowPayWall] = useState(true)
+  const [showPayWall, setShowPayWall] = useState(false)
 
   const { refreshProfile } = useAuth()
 
