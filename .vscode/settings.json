@@ -1,4 +1,5 @@
 {
+  "deno.path": "/Users/aosang/.deno/bin/deno",
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
     "source.organizeImports": "never",
