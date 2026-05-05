@@ -1,10 +1,21 @@
+import { COURSE_DATA } from "@/constants/CourseData";
 import { Colors } from "@/constants/theme";
+import { useSpeakingListeningStats } from "@/hooks/useSpeakingListeningStats";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LessonsContent () {
   const colors = Colors["light"]
+  const { stats, loading, refresh } = useSpeakingListeningStats()
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh()
+    }, [refresh])
+  )
 
   return (
     <SafeAreaView
@@ -22,14 +33,18 @@ export default function LessonsContent () {
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
-                <Text style={styles.statValue}>{20}</Text>
+                <Text style={styles.statValue}>
+                  {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
+                </Text>
                 <Ionicons 
                   name="arrow-up" 
                   size={14} 
                   color="#34c759"
                   style={{marginLeft: 2}}
                 />
-                <Text style={styles.statChangePositive}>{20}</Text>
+                <Text style={styles.statChangePositive}>
+                  {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
+                </Text>
               </View>
               <Text style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
                 minutes spoken
@@ -47,22 +62,38 @@ export default function LessonsContent () {
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
-                <Text style={styles.statValue}>{20}</Text>
+                <Text style={styles.statValue}>
+                  {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
+                </Text>
                 <Ionicons 
                   name="arrow-up" 
                   size={14} 
                   color="#34c759"
                   style={{marginLeft: 2}}
                 />
-                <Text style={styles.statChangePositive}>{20}</Text>
+                <Text style={styles.statChangePositive}>
+                  {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
+                </Text>
               </View>
               <Text style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
                 minutes spoken
               </Text>
             </TouchableOpacity>
           </View>
-
         </View>
+        {/* Main Content */}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {COURSE_DATA.chapters.map((chapter)=> (
+            <View key={chapter.id} style={styles.chapterContainer}>
+              <View style={styles.chapterHeader}>
+                <Text>CHAPTER {chapter.id}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     </SafeAreaView>
   )
