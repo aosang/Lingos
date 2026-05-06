@@ -36,7 +36,7 @@ export interface Lesson {
   title: string
   icon: keyof typeof Ionicons.glyphMap
   completionCount: number
-  questions: Questions[]
+  questions: Question[]
 }
 
 
@@ -95,6 +95,6 @@ interface LisnteningMutipleChoiceQuestion extends BaseQuestion {
   correctOptionId: number
 }
 
-export type Questions = MultipleChoiseQuestion | SingleResponseQuestion | LisnteningMutipleChoiceQuestion
+export type Question = MultipleChoiseQuestion | SingleResponseQuestion | LisnteningMutipleChoiceQuestion
 
 export const COURSE_DATA = couseData as unknown as CourseData

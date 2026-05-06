@@ -1,15 +1,30 @@
-import { COURSE_DATA } from "@/constants/CourseData";
+import { ThemedText } from "@/components/themed-text";
+import { Chapter, COURSE_DATA, Lesson } from "@/constants/CourseData";
 import { Colors } from "@/constants/theme";
 import { useSpeakingListeningStats } from "@/hooks/useSpeakingListeningStats";
+import { getAllProgress } from "@/lib/lessonProgress";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+
+const MAX_STARS = 3
 
 export default function LessonsContent () {
   const colors = Colors["light"]
   const { stats, loading, refresh } = useSpeakingListeningStats()
+  const [progress, setProgress] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    loadProgress()
+  }, [])
+
+  const loadProgress = async () => {
+    const savedProgress = await getAllProgress()
+    setProgress(savedProgress)
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -17,67 +32,130 @@ export default function LessonsContent () {
     }, [refresh])
   )
 
+  const handleLessonPress = (lesson: Lesson) => {
+    router.push({pathname: "/practise", params: { lessonId: lesson.id }})
+  }
+
+  const handlePractiseCharpterPress = (chapter: Chapter) => {
+    if(chapter.review) {
+      router.push({
+        pathname: "/practise",
+        params: {lessonId: chapter.review.id}
+      })
+    }
+  }
+
+  const renderCompletionStatus = (count: number) => {
+    const elements = []
+    const starsToDisplay = Math.min(count, MAX_STARS)
+
+    for (let i = 1; i <= MAX_STARS; i++) {
+      elements.push(
+      <Ionicons 
+        key={`star-${i}`} 
+        name={i <= starsToDisplay? "star" : "star-outline"} 
+        size={16}
+        color={i <= starsToDisplay? "#ffd700" : Colors.subduedTextColor}
+        style={styles.starIcon}
+      />
+      )
+    }
+
+    if(count > MAX_STARS) {
+      const extraCount = count - MAX_STARS
+      elements.push(
+        <ThemedText key="extra-count" style={[styles.extraCountText, {color: Colors.subduedTextColor}]}>
+          +{extraCount}
+        </ThemedText>
+      ) 
+    }
+
+    return <View style={styles.completionStarsContainer}>{elements}</View>
+  }
+
+  const renderLessonNode = (lesson: Lesson, index: number) => {
+    const completionCount = progress[lesson.id] || 0
+    const isMastered = completionCount >= MAX_STARS
+    const aligment = index % 2 === 0? "flex-start" : "flex-end"
+    return (
+      <View key={lesson.id} style={[styles.lessonNodeContainer, {alignItems: aligment}]}>
+        <TouchableOpacity 
+          style={[styles.lessonBubble, {backgroundColor: colors.background, borderColor: isMastered? Colors.primaryAccentColor : Colors.borderColor}]}
+          onPress={() => handleLessonPress(lesson)}
+        >
+          <Ionicons 
+            name={lesson.icon} 
+            size={28} 
+            color={Colors.primaryAccentColor } 
+          />
+          <View style={styles.lessonTextContainer}>
+            <ThemedText style={styles.lessonTitle}>
+              {lesson.title}
+            </ThemedText>
+            {renderCompletionStatus(completionCount)}
+          </View>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
+      edges={["top", "left", "right"]}
     >
       <View style={styles.container}>
         <View style={[styles.header, {borderBottomColor: Colors.borderColor}]}>
           <TouchableOpacity>
-            <Text style={styles.headerTitle}>This Week</Text>
-            <Text style={[styles.headerSubtitle, {
+            <ThemedText style={styles.headerTitle}>This Week</ThemedText>
+            <ThemedText style={[styles.headerSubtitle, {
               color: Colors.subduedTextColor
-            }]}>In Reviews</Text>
+            }]}>In Reviews</ThemedText>
           </TouchableOpacity>
 
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
-                <Text style={styles.statValue}>
+                <ThemedText style={styles.statValue}>
                   {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
-                </Text>
+                </ThemedText>
                 <Ionicons 
                   name="arrow-up" 
                   size={14} 
                   color="#34c759"
                   style={{marginLeft: 2}}
                 />
-                <Text style={styles.statChangePositive}>
+                <ThemedText style={styles.statChangePositive}>
                   {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
-                </Text>
+                </ThemedText>
               </View>
-              <Text style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
+              <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
                 minutes spoken
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.headerSeparator, {
-            backgroundColor: Colors.borderColor
-          }]}
-          >
-
-          </View>
+          <View style={[styles.headerSeparator, {backgroundColor: Colors.borderColor}]}></View>
 
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
-                <Text style={styles.statValue}>
+                <ThemedText style={styles.statValue}>
                   {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
-                </Text>
+                </ThemedText>
                 <Ionicons 
                   name="arrow-up" 
                   size={14} 
                   color="#34c759"
                   style={{marginLeft: 2}}
                 />
-                <Text style={styles.statChangePositive}>
+                <ThemedText style={styles.statChangePositive}>
                   {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
-                </Text>
+                </ThemedText>
               </View>
-              <Text style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
+              <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
                 minutes spoken
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -89,8 +167,29 @@ export default function LessonsContent () {
           {COURSE_DATA.chapters.map((chapter)=> (
             <View key={chapter.id} style={styles.chapterContainer}>
               <View style={styles.chapterHeader}>
-                <Text>CHAPTER {chapter.id}</Text>
+                <Text style={styles.chapterNumberText}>
+                  chapter {chapter.id}
+                </Text>
+                <ThemedText type="title" style={styles.chapterTitleText}>
+                  chapter {chapter.title}
+                </ThemedText>
               </View>
+
+              <View style={styles.lessonsWrapper}>
+                {chapter.lessons.map(renderLessonNode)}
+              </View>
+
+              {chapter.review && (
+                <TouchableOpacity 
+                  style={[styles.practiceChapterButton, {backgroundColor: Colors.primaryAccentColor}]}
+                  onPress={() => handlePractiseCharpterPress(chapter)}
+                >
+                  <Ionicons name="flash" size={20} color="#fff" />
+                  <ThemedText style={styles.practiceChapterButtonText}>
+                    Review '{chapter.title}'
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           ))}
         </ScrollView>

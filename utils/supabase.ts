@@ -46,5 +46,8 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
+      // Implicit grant puts tokens in URL hash; Android often strips #fragments on custom-scheme intents.
+      // PKCE returns ?code= in the query, which survives Android deep links.
+      flowType: 'pkce',
     },
   })

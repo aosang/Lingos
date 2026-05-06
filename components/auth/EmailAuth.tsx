@@ -1,13 +1,14 @@
 import { supabase } from '@/utils/supabase'
 import Entypo from '@expo/vector-icons/Entypo'
-import { makeRedirectUri } from "expo-auth-session"
+import * as Linking from 'expo-linking'
 import { useState } from "react"
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from 'sonner-native'
 
-/** Same role as AuthSession.makeRedirectUri; avoids loading expo-crypto (native) via expo-auth-session. */
-const redirectTo = makeRedirectUri()
+/** Deep link / dev client URL; avoids http://localhost which is the emulator itself on Android (unreachable). */
+const redirectTo = Linking.createURL('/')
+
 
 export default function EmailAuth ({
   onBack,
