@@ -10,8 +10,14 @@ import { useDeepLinking } from '@/hooks/useDeepLinking';
 import AuthProvider from '@/providers/AuthProvider';
 import { useFonts } from "expo-font";
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, LogBox } from 'react-native';
 import { Toaster } from "sonner-native";
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    'Sending `onAnimatedValueUpdate` with no listeners registered.',
+  ]);
+}
 
 export const unstable_settings = {
   anchor: '(tabs)',

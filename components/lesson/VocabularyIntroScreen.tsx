@@ -1,6 +1,6 @@
 import { Question, Word } from "@/constants/CourseData"
-import { useEffect, useMemo, useState } from "react"
-import { View, StyleSheet } from "react-native"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { View, StyleSheet, Pressable } from "react-native"
 import { Colors } from "@/constants/theme"
 import ProgressHeader from "./ProgressHeader"
 import ConfirmDialog from "../ui/ConfirmDialog"
@@ -34,7 +34,9 @@ interface StudyState {
 const getUniqueWords = (questions: Question[]): Word[] => {
   const allWords = new Map<string, Word>()
   questions.forEach((question) => {
-    const wordSource = question.type === "listening_mc"? question.mandarin.words : question.options.flatMap((opt) => opt.mandarin.words)
+    const wordSource = question.type === "listening_mc"? 
+    question.mandarin.words : 
+    question.options.flatMap((opt) => opt.mandarin.words)
 
     wordSource.forEach((word) => {
       if(word && word.hanzi && !allWords.has(word.hanzi)) {
@@ -54,7 +56,7 @@ const buildDeck = (words: Word[]): DeckBuckets => {
   }))
 
   const recall: StudyCard[] = words.map((word) => ({
-    key: `${word.hanzi}-recognition`,
+    key: `${word.hanzi}-recall`,
     word,
     direction: "en-zh"
   }))
@@ -103,7 +105,62 @@ export default function VocabularyIntroScreen ({
     ) {
       onStartLesson()
     }
-  }, [state.queue.length, state.recallKeys.length, state.completed, state.total, onStartLesson])
+  }, [
+    state.queue.length, 
+    state.recallKeys.length, 
+    state.completed, 
+    state.total, onStartLesson
+  ])
+
+  const handleGrade = useCallback((grade: "again" | "good") => {
+    setState((prev) => {
+      if(!prev.queue.length) {
+        return prev
+      }
+      const [activeKey, ...restQueue] = prev.queue
+      const entry = prev.cards[activeKey]
+
+      if(!entry) {
+        return {...prev, queue: restQueue}
+      }
+
+      let queue = [...restQueue]
+      let completed = prev.completed
+      let phase: StudyPhase = prev.phase
+      let recallKeys = prev.recallKeys
+
+      if(grade === "again") {
+        const insertIndex = Math.min(2, queue.length)
+        queue.splice(insertIndex, 0, activeKey)
+      }else {
+        completed = Math.min(prev.total, prev.completed + 1)
+      }
+
+      if(
+        queue.length === 0 &&
+        phase === "recognition" &&
+        recallKeys.length > 0
+      ) {
+        queue = [...recallKeys]
+        recallKeys = []
+        phase = "recall"
+      }
+
+      return {
+        ...prev,
+        queue,
+        completed,
+        phase,
+        recallKeys
+      }
+
+    })
+  }, [])
+
+  if(deck.total === 0) {
+    onStartLesson()
+    return null
+  }
 
   const progressPercent = state.total === 0?  0: (state.completed / state.total) * 100
 
@@ -126,6 +183,7 @@ export default function VocabularyIntroScreen ({
           router.push("/lessons")
         }}
       />
+
       <ProgressHeader 
         progress={progressPercent} 
         currentCount={headerCount} 
@@ -142,6 +200,7 @@ export default function VocabularyIntroScreen ({
             Tap to flip. Retry cards you still need to review.
           </ThemedText>
         </View>
+
         {currentCard? (
           <View style={styles.flashcardContainer}>
             <FlashCard 
@@ -151,6 +210,41 @@ export default function VocabularyIntroScreen ({
             />
           </View>
         ) : null}
+
+        <View style={styles.bottomActions}>
+          <View style={styles.gradeButtons}>
+            <Pressable
+              onPress={() => handleGrade("again")}
+              disabled={!currentCard} 
+              style={({pressed}) => [
+              styles.gradeButton,
+              styles.againButton,
+              !currentCard? styles.disabledButton : null,
+              pressed && !!currentCard? styles.pressedButton : null
+            ]}>
+              <ThemedText style={styles.gradeButtonText}>Again</ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => handleGrade("good")}
+              disabled={!currentCard} 
+              style={({pressed}) => [
+              styles.gradeButton,
+              styles.gotItButton,
+              !currentCard? styles.disabledButton : null,
+              pressed && !!currentCard? styles.pressedButton : null
+            ]}>
+              <ThemedText style={styles.gradeButtonTextWhite}>Got it</ThemedText>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={onStartLesson}
+            style={({pressed}) => [styles.skipButton, pressed && styles.skipButtonPressed]}
+          >
+            <ThemedText style={styles.skipButtonText}>
+              Skip to Lesson
+            </ThemedText>
+          </Pressable>
+        </View>
       </View>
     </View>
   )

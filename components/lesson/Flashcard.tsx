@@ -1,17 +1,16 @@
 import { Word } from "@/constants/CourseData";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Pressable, View, Animated, StyleSheet } from "react-native"
-import { useRef } from "react";
-import { Colors } from "@/constants/theme";
+import { ThemedText } from "../themed-text";
 
 export default function FlashCard ({
   word,
   direction
 } : {
-  word: Word,
+  word: Word;
   direction: "en-zh" | "zh-en"
 }) {
-  const [isFlipped, setIsFipped] = useState(false)
+  const [isFlipped, setIsFlipped] = useState(false)
   const flipAnimation = useRef(new Animated.Value(0)).current
 
   const frontInterpolate = flipAnimation.interpolate({
@@ -37,9 +36,8 @@ export default function FlashCard ({
       toValue: 0,
       duration: 250,
       useNativeDriver: true
-    }).start()
-
-    setIsFipped(false)
+    }).start();
+    setIsFlipped(false)
   }
 
   const flipToBack = () => {
@@ -47,16 +45,50 @@ export default function FlashCard ({
       toValue: 180,
       duration: 250,
       useNativeDriver: true
-    }).start()
+    }).start();
+    setIsFlipped(true)
+  }
 
-    setIsFipped(true)
+  const FrontContent = () => {
+    if(direction === "en-zh") {
+      return (
+        <ThemedText style={styles.englishFront}>{word.english}</ThemedText>
+      )
+    }
+    
+    return (
+      <View style={styles.mandarinContent}>
+        <ThemedText style={styles.pinyin}>{word.pinyin}</ThemedText>
+        <ThemedText style={styles.hanzi}>{word.hanzi}</ThemedText>
+      </View>     
+    )
+  }
+
+  const BackContent = () => {
+    if(direction === "en-zh") {
+      return (
+        <View style={styles.mandarinContent}>
+          <ThemedText style={[styles.pinyin, styles.mandarinBackText]}>{word.pinyin}</ThemedText>
+          <ThemedText style={[styles.hanzi, styles.mandarinBackText]}>{word.hanzi}</ThemedText>
+        </View>
+      )
+    }
+
+    return (
+      <ThemedText style={[styles.englishBack, styles.mandarinBackText]}>
+        {word.english}
+      </ThemedText>
+    )
   }
 
   return (
-    <Pressable onPress={isFlipped? flipToFront: flipToBack}>
+    <Pressable onPress={isFlipped ? flipToFront: flipToBack}>
       <View>
-        <Animated.View style={[styles.card, styles.cardFront, frontInterpolate]}>
-
+        <Animated.View style={[styles.card, styles.cardFront, frontAnimatedStyle]}>
+          {FrontContent()}
+        </Animated.View>
+        <Animated.View style={[styles.card, styles.cardBack, backAnimatedStyle]}>
+          {BackContent()}
         </Animated.View>
       </View>
     </Pressable>

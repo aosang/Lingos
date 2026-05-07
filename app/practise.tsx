@@ -1,12 +1,13 @@
 import { COURSE_DATA } from "@/constants/CourseData"
 import { useLocalSearchParams, Redirect } from "expo-router"
 import { useState } from "react"
-import { View, Text, StyleSheet } from "react-native"
+import { StyleSheet } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import VocabularyIntroScreen from "@/components/lesson/VocabularyIntroScreen"
+import LessonContent from "@/components/lesson/LessonContent"
 
 export default function PractiseScreen () {
-  const { lessonId } = useLocalSearchParams()
+  const { lessonId } = useLocalSearchParams<{lessonId: string}>()
   const [isStudyingVocabulary, setIsStudyingVocabulary] = useState(true)
 
   const allLessons = COURSE_DATA.chapters.flatMap((c) => c.review? [...c.lessons, c.review] : c.lessons)
@@ -20,7 +21,8 @@ export default function PractiseScreen () {
   if(isStudyingVocabulary) {
     return (
       <SafeAreaView style={styles.container}>
-        <VocabularyIntroScreen 
+        <VocabularyIntroScreen
+          key={lessonId}
           questions={questions}
           onStartLesson={() => setIsStudyingVocabulary(false)}
         />
@@ -29,9 +31,9 @@ export default function PractiseScreen () {
   }
 
   return (
-    <View>
-  
-    </View>
+    <SafeAreaView style={styles.container}>
+      <LessonContent questions={questions} lessonId={lessonId} />
+    </SafeAreaView>
   )
 }
 
