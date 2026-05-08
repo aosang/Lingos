@@ -5,6 +5,9 @@ import { useState, useRef, useMemo } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { router } from "expo-router";
 import { Audio } from "expo-av"
+import AudioPrompt from "./AudioPrompt";
+import * as Speech from "expo-speech"
+import { recordQuestionListend } from "@/lib/speakingListeningStats";
 
 interface WrongQuestion {
   english: string
@@ -59,8 +62,74 @@ export default function LessonContent ({
   const optionsAnimValue = useRef(new Animated.Value(0)).current
   const audioSectionAnimHeight = useRef(new Animated.Value(400)).current
   const optionSelectionAnim = useRef(new Animated.Value(400)).current
+  const instructionOpacity = useRef(new Animated.Value(1)).current
+  const listeningOpacity = useRef(new Animated.Value(0)).current
+  const listeningScale = useRef(new Animated.Value(0.95)).current
+  const [hasStartedFirstPlay, setHasStartedFirstPlay] = useState(false)
 
   const progress = ((currentQuestionIndex + 1)/questions.length) * 100
+
+  const finishListening = () => {
+    if(hasListenedToAudio) return
+    setHasListenedToAudio(true)
+    setIsSpeechPlaying(false)
+    void recordQuestionListend()
+
+    Animated.parallel([
+      Animated.timing(audioSectionAnimHeight, {
+        toValue: 200,
+        duration: 800,
+        useNativeDriver: false
+      }),
+
+      Animated.timing(optionsAnimValue, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true
+      })
+    ]).start()
+  }
+
+  const playAudio = () => {
+    const textToSpeak = currentQuestion.mandarin.hanzi || currentQuestion.mandarin.pinyin
+
+    if(isSpeechPlaying) {
+      Speech.stop()
+      setIsSpeechPlaying(false)
+      return
+    }
+
+    setIsSpeechPlaying(true)
+    Speech.speak(textToSpeak, {
+      language: "zh-CN",
+      onDone: () => {
+        setIsSpeechPlaying(false)
+        finishListening()
+      },
+      onStopped: () => {
+        setIsSpeechPlaying(false)
+      },
+      onError: () => {
+        setIsSpeechPlaying(false)
+      }
+    })
+  }
+
+  const handleRevealMandarin = () => {
+    if(showMandarin) {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true
+      }).start(() => setShowMandarin(false))
+    }else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true
+      }).start()
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -84,6 +153,38 @@ export default function LessonContent ({
         totalCount={questions.length} 
         onClose={() => setExitConfirmVisible(true)} 
       />
+
+      {/* main content */}
+      <View style={styles.content}>
+        <Animated.View style={[styles.audioSection, {
+          backgroundColor: "#f9fafb",
+          minHeight: audioSectionAnimHeight,
+          flex: hasListenedToAudio? 0 : 1,
+          justifyContent: "center",
+          opacity: isLoading || showResult? 0.6 : 1
+        },
+        ]}
+        pointerEvents={isLoading || showResult ? "none" : "auto"}
+        >
+          <AudioPrompt 
+            isPlaying={isSpeechPlaying}
+            isRecognizing={isRecognizing}
+            hasListenedToAudio={hasListenedToAudio}
+            onPlay={playAudio}
+            onStartRecord={() => {}}
+            onStopRecord={() => {}}
+            onRevealMandarin={handleRevealMandarin}
+            currentQuestion={currentQuestion}
+            showMandarin={showMandarin}
+            selectedOption={selectedOption}
+            scaleAnim={scaleAnim}
+            instructionOpacity={instructionOpacity}
+            listeningOpacity={listeningOpacity}
+            listeningScale={listeningScale}
+            fadeAnim={fadeAnim}
+          />
+        </Animated.View> 
+      </View>
     </View>
   )
 }
