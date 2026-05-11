@@ -1,7 +1,7 @@
 import { Question } from "@/constants/CourseData";
 import {  View, Text, StyleSheet, Animated } from "react-native"
 import ProgressHeader from "./ProgressHeader";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { router } from "expo-router";
 import { Audio } from "expo-av"
@@ -68,6 +68,37 @@ export default function LessonContent ({
   const [hasStartedFirstPlay, setHasStartedFirstPlay] = useState(false)
 
   const progress = ((currentQuestionIndex + 1)/questions.length) * 100
+
+  useEffect(() => {
+    if(isSpeechPlaying && !hasStartedFirstPlay && !hasListenedToAudio) {
+      setHasStartedFirstPlay(true)
+      Animated.parallel([
+        Animated.timing(instructionOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true
+        }),
+        Animated.timing(listeningOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true
+        }),
+        Animated.sequence([
+          Animated.timing(listeningScale, {
+            toValue: 1.05,
+            duration: 150,
+            useNativeDriver: true
+          }),
+
+          Animated.timing(listeningScale, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true
+          })
+        ])
+      ]).start()
+    }
+  }, [isSpeechPlaying, hasStartedFirstPlay, hasListenedToAudio])
 
   const finishListening = () => {
     if(hasListenedToAudio) return
@@ -183,6 +214,7 @@ export default function LessonContent ({
             listeningScale={listeningScale}
             fadeAnim={fadeAnim}
           />
+
         </Animated.View> 
       </View>
     </View>
