@@ -1,9 +1,10 @@
 import { Question } from "@/constants/CourseData"
-import { Animated, View, Pressable, StyleSheet, Platform } from "react-native"
+import { Animated, View, Pressable, StyleSheet, Platform, TouchableOpacity } from "react-native"
 import { Colors } from "@/constants/theme"
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { ThemedText } from "../themed-text";
+import AudioWaveform from "./AudioWaveform";
 
 export default function AudioPrompt({
   isPlaying,
@@ -99,9 +100,54 @@ export default function AudioPrompt({
             Recording...
           </ThemedText>
         </View>
-      ) : null}
+      ) : (
+        <AudioWaveform isPlaying={isPlaying} />
+      )}
 
-      {/* TODO: implement branches */}
+      <View style={[
+        styles.promptTextContainer, 
+          {minHeight: currentQuestion.type === "listening_mc"? 0 : 50},
+        ]}
+      >
+        {selectedOption ? <View style={styles.recordingPromptTop}>
+          <ThemedText style={styles.recordingPromptText}>
+            {isRecognizing? "Speak your response" : "Tap the microphone to record"}
+          </ThemedText>
+        </View> : !hasListenedToAudio? (
+          <View style={styles.listeningPrompt}>
+            <Animated.View 
+              style={[styles.instructionContainer, 
+              {opacity: instructionOpacity}]}
+            >
+              <ThemedText style={[styles.instructionText, {marginBottom: 8}]}>
+                Tap play to listen carefully
+              </ThemedText>
+              <ThemedText style={[styles.instructionHint]}>
+                The audios plays once before each response
+              </ThemedText>
+            </Animated.View> 
+            <Animated.View style={[
+              styles.listeningContainer, {
+              opacity: listeningOpacity,
+              transform: [{scale: listeningScale}],
+            }]}>
+              <ThemedText style={styles.revealButtonText}>
+                Listening...
+              </ThemedText>
+            </Animated.View>
+          </View>
+        ) : showMandarin? (
+          <TouchableOpacity onPress={onRevealMandarin}>
+            <Animated.View style={[styles.mandarinText, {opacity: 1}]}>
+              <ThemedText>{"currentQuestion.mandarin.pinyin"}</ThemedText>
+            </Animated.View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={onRevealMandarin}>
+            <Animated.View></Animated.View>
+          </TouchableOpacity>
+        )}
+      </View>
     </>
   )
 }
