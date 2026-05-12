@@ -8,6 +8,7 @@ import { Audio } from "expo-av"
 import AudioPrompt from "./AudioPrompt";
 import * as Speech from "expo-speech"
 import { recordQuestionListend } from "@/lib/speakingListeningStats";
+import MultipleChoiceMode from "./MultipleChoiceMode";
 
 interface WrongQuestion {
   english: string
@@ -61,7 +62,7 @@ export default function LessonContent ({
   const scaleAnim = useRef(new Animated.Value(1)).current
   const optionsAnimValue = useRef(new Animated.Value(0)).current
   const audioSectionAnimHeight = useRef(new Animated.Value(400)).current
-  const optionSelectionAnim = useRef(new Animated.Value(400)).current
+  const optionSelectionAnim = useRef(new Animated.Value(0)).current
   const instructionOpacity = useRef(new Animated.Value(1)).current
   const listeningOpacity = useRef(new Animated.Value(0)).current
   const listeningScale = useRef(new Animated.Value(0.95)).current
@@ -115,7 +116,8 @@ export default function LessonContent ({
 
       Animated.timing(optionsAnimValue, {
         toValue: 1,
-        duration: 600,
+        duration: 800,
+        delay: 200,
         useNativeDriver: true
       })
     ]).start()
@@ -160,6 +162,22 @@ export default function LessonContent ({
         useNativeDriver: true
       }).start()
     }
+  }
+
+  const handleOptionPress = (id: number) => {
+    if(currentQuestion.type === "listening_mc") {
+      // TODO
+      return 
+    }
+
+    const isDeselecting = selectedOption === id
+    const newSelectedOption = isDeselecting? null : id
+    setSelectedOption(newSelectedOption)
+    Animated.timing(optionSelectionAnim, {
+      toValue: isDeselecting? 0 : 1,
+      duration: 300,
+      useNativeDriver: true
+    }).start()
   }
 
   return (
@@ -214,8 +232,38 @@ export default function LessonContent ({
             listeningScale={listeningScale}
             fadeAnim={fadeAnim}
           />
-
         </Animated.View> 
+
+        {hasListenedToAudio && (
+          <Animated.View style={[
+            styles.optionsSection, 
+            {
+              opacity: Animated.multiply(
+                optionsAnimValue,
+                isLoading || showResult? 0.5 : 1
+              ),
+              transform:[
+                {translateY: optionSelectionAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0]
+                })}
+              ]
+            }
+          ]}
+          pointerEvents={isLoading || showResult? "none" : "auto"}
+          >
+            {currentQuestion.type === "multiple_choice" && (
+              <MultipleChoiceMode 
+                options={currentQuestion.options} 
+                selectedOption={selectedOption} 
+                handleOptionPress={handleOptionPress}
+                optionsSelectionAnim={optionSelectionAnim}
+                isLoading={isLoading}
+                showResult={showResult}
+              />
+            )}
+          </Animated.View>
+        )}
       </View>
     </View>
   )

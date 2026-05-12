@@ -1,8 +1,16 @@
-import { Question } from "@/constants/CourseData"
-import { Animated, View, Pressable, StyleSheet, Platform, TouchableOpacity } from "react-native"
-import { Colors } from "@/constants/theme"
+import { Question } from "@/constants/CourseData";
+import { Colors } from "@/constants/theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import React from "react";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ThemedText } from "../themed-text";
 import AudioWaveform from "./AudioWaveform";
 
@@ -22,134 +30,169 @@ export default function AudioPrompt({
   listeningOpacity,
   listeningScale,
   fadeAnim,
-} : {
-  isPlaying: boolean
-  isRecognizing: boolean
-  hasListenedToAudio: boolean
-  onPlay: () => void
-  onStartRecord: () => void
-  onStopRecord: () => void
-  onRevealMandarin: () => void
-  currentQuestion: Question
-  showMandarin: boolean
-  selectedOption: number | null
-  scaleAnim: Animated.Value
-  instructionOpacity: Animated.Value
-  listeningOpacity: Animated.Value
-  listeningScale: Animated.Value
-  fadeAnim: Animated.Value
+}: {
+  isPlaying: boolean;
+  isRecognizing: boolean;
+  hasListenedToAudio: boolean;
+  onPlay: () => void;
+  onStartRecord: () => void;
+  onStopRecord: () => void;
+  onRevealMandarin: () => void;
+  currentQuestion: Question;
+  showMandarin: boolean;
+  selectedOption: number | null;
+  scaleAnim: Animated.Value;
+  instructionOpacity: Animated.Value;
+  listeningOpacity: Animated.Value;
+  listeningScale: Animated.Value;
+  fadeAnim: Animated.Value;
 }) {
-
-  const playbackDisabled = !selectedOption && (isPlaying || hasListenedToAudio)
-
+  const playbackDisabled = !selectedOption && (isPlaying || hasListenedToAudio);
   return (
     <>
-      <Pressable 
-        disabled={playbackDisabled} 
-        onPress={selectedOption? isRecognizing ? onStopRecord : () => requestAnimationFrame(onStartRecord) : playbackDisabled? undefined : () => requestAnimationFrame(onPlay)}
+      <Pressable
+        disabled={playbackDisabled}
+        onPress={
+          selectedOption
+            ? isRecognizing
+              ? onStopRecord
+              : () => requestAnimationFrame(onStartRecord)
+            : playbackDisabled
+              ? undefined
+              : () => requestAnimationFrame(onPlay)
+        }
         onPressIn={() => {
-          if(playbackDisabled) {
-            return
+          if (playbackDisabled) {
+            return;
           }
+
           Animated.spring(scaleAnim, {
             toValue: 0.9,
-            useNativeDriver: true
-          }).start()
+            useNativeDriver: true,
+          }).start();
         }}
         onPressOut={() => {
-          if(playbackDisabled) {
-            return
+          if (playbackDisabled) {
+            return;
           }
+
           Animated.spring(scaleAnim, {
             toValue: 1,
-            useNativeDriver: true
-          }).start()
+            useNativeDriver: true,
+          }).start();
         }}
       >
-        <Animated.View 
-          style={[styles.playButton, 
+        <Animated.View
+          style={[
+            styles.playButton,
             {
-              backgroundColor: selectedOption? 
-                isRecognizing? 
-                  "#ef4444" : Colors.primaryAccentColor 
-                : playbackDisabled ? 
-                  "#ff8c66" : Colors.primaryAccentColor,
-              transform: [{scale: scaleAnim}]
-            }
+              backgroundColor: selectedOption
+                ? isRecognizing
+                  ? "#ef4444"
+                  : Colors.primaryAccentColor
+                : playbackDisabled
+                  ? "#ff8c66"
+                  : Colors.primaryAccentColor,
+              transform: [{ scale: scaleAnim }],
+            },
           ]}
         >
-          {selectedOption? 
-            (isRecognizing? (
+          {selectedOption ? (
+            isRecognizing ? (
               <MaterialIcons name="stop" size={36} color="white" />
             ) : (
               <Ionicons name="mic" size={36} color="white" />
             )
-          ): isPlaying? (
+          ) : isPlaying ? (
             <MaterialIcons name="graphic-eq" size={36} color="white" />
           ) : (
             <Ionicons name="play" size={36} color="white" />
           )}
         </Animated.View>
       </Pressable>
-      {selectedOption && isRecognizing? (
+      {selectedOption && isRecognizing ? (
         <View style={styles.recordingStatus}>
           <View style={styles.recordingIndicatorLarge}>
             <View style={styles.recordingDotLarge}></View>
           </View>
-          <ThemedText style={styles.recordingText}>
-            Recording...
-          </ThemedText>
+          <ThemedText style={styles.recordingText}>Recording...</ThemedText>
         </View>
       ) : (
         <AudioWaveform isPlaying={isPlaying} />
       )}
 
-      <View style={[
-        styles.promptTextContainer, 
-          {minHeight: currentQuestion.type === "listening_mc"? 0 : 50},
+      <View
+        style={[
+          styles.promptTextContainer,
+          { minHeight: currentQuestion.type === "listening_mc" ? 0 : 50 },
         ]}
       >
-        {selectedOption ? <View style={styles.recordingPromptTop}>
-          <ThemedText style={styles.recordingPromptText}>
-            {isRecognizing? "Speak your response" : "Tap the microphone to record"}
-          </ThemedText>
-        </View> : !hasListenedToAudio? (
+        {selectedOption ? (
+          <View style={styles.recordingPromptTop}>
+            <ThemedText style={styles.recordingPromptText}>
+              {isRecognizing
+                ? "Speak your response now"
+                : "Tap the microphone to record"}
+            </ThemedText>
+          </View>
+        ) : !hasListenedToAudio ? (
           <View style={styles.listeningPrompt}>
-            <Animated.View 
-              style={[styles.instructionContainer, 
-              {opacity: instructionOpacity}]}
+            <Animated.View
+              style={[
+                styles.instructionContainer,
+                { opacity: instructionOpacity },
+              ]}
             >
-              <ThemedText style={[styles.instructionText, {marginBottom: 8}]}>
+              <ThemedText style={[styles.instructionText, { marginBottom: 8 }]}>
                 Tap play to listen carefully
               </ThemedText>
               <ThemedText style={[styles.instructionHint]}>
-                The audios plays once before each response
+                The audio plays once before each response
               </ThemedText>
-            </Animated.View> 
-            <Animated.View style={[
-              styles.listeningContainer, {
-              opacity: listeningOpacity,
-              transform: [{scale: listeningScale}],
-            }]}>
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.listeningContainer,
+                {
+                  opacity: listeningOpacity,
+                  transform: [{ scale: listeningScale }],
+                },
+              ]}
+            >
               <ThemedText style={styles.revealButtonText}>
                 Listening...
               </ThemedText>
             </Animated.View>
           </View>
-        ) : showMandarin? (
+        ) : showMandarin ? (
           <TouchableOpacity onPress={onRevealMandarin}>
-            <Animated.View style={[styles.mandarinText, {opacity: 1}]}>
-              <ThemedText>{"currentQuestion.mandarin.pinyin"}</ThemedText>
+            <Animated.View style={[styles.mandarinText, { opacity: fadeAnim }]}>
+              <ThemedText style={styles.pinyin}>
+                {currentQuestion.mandarin.pinyin}
+              </ThemedText>
+              <ThemedText
+                style={[styles.hanzi, { color: Colors.subduedTextColor }]}
+              >
+                {currentQuestion.mandarin.hanzi}
+              </ThemedText>
             </Animated.View>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={onRevealMandarin}>
-            <Animated.View></Animated.View>
-          </TouchableOpacity>
+          currentQuestion.type !== "listening_mc" && (
+            <TouchableOpacity
+              style={styles.revealButton}
+              onPress={onRevealMandarin}
+              hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
+            >
+              <ThemedText style={styles.instructionText}>
+                Tap here to reveal what was said
+              </ThemedText>
+            </TouchableOpacity>
+          )
         )}
       </View>
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({

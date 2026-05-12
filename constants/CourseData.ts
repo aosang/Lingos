@@ -74,13 +74,13 @@ export interface ListeningOption {
 }
 
 interface MultipleChoiseQuestion extends BaseQuestion {
-  type: "mutiple_choice"
+  type: "multiple_choice"
   mandarin: MandarinPrompt
   options: SpeakingOption[]
 }
 
 interface SingleResponseQuestion extends BaseQuestion {
-  type: "mutiple_choice"
+  type: "single_response"
   mandarin: MandarinPrompt
   options: [SpeakingOption]
 }
