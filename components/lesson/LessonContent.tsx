@@ -1,14 +1,18 @@
 import { Question } from "@/constants/CourseData";
-import {  View, Text, StyleSheet, Animated } from "react-native"
+import {  View, StyleSheet, Animated } from "react-native"
 import ProgressHeader from "./ProgressHeader";
 import { useState, useRef, useMemo, useEffect } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { router } from "expo-router";
-import { Audio } from "expo-av"
+import { Audio, InterruptionModeIOS } from "expo-av"
 import AudioPrompt from "./AudioPrompt";
 import * as Speech from "expo-speech"
 import { recordQuestionListend } from "@/lib/speakingListeningStats";
 import MultipleChoiceMode from "./MultipleChoiceMode";
+import ListeningMultipleChoiceMode from "./ListeningMultipleChoiceMode";
+import SingleResponseMode from "./SingleResponseMode";
+import { toast } from "sonner-native";
+import * as FileSystem from "expo-file-system/legacy"
 
 interface WrongQuestion {
   english: string
@@ -100,6 +104,17 @@ export default function LessonContent ({
       ]).start()
     }
   }, [isSpeechPlaying, hasStartedFirstPlay, hasListenedToAudio])
+  
+  useEffect(() => {
+    if(currentQuestion.type === "single_response" && currentQuestion.options.length > 0 && hasListenedToAudio) {
+      setSelectedOption(currentQuestion.options[0].id)
+      Animated.timing(optionSelectionAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true
+      }).start()
+    }
+  }, [currentQuestion, hasListenedToAudio])
 
   const finishListening = () => {
     if(hasListenedToAudio) return
@@ -148,6 +163,88 @@ export default function LessonContent ({
     })
   }
 
+  const startRecording = async () => {
+    if(isSpeechPlaying) {
+      Speech.stop()
+      setIsSpeechPlaying(false)
+    }
+
+    try {
+      const perm = await Audio.requestPermissionsAsync()
+      if(!perm.granted) {
+        toast.error("Microphone Permission", {
+          description: "Microphone access is required to practise speaking."
+        })
+        return
+      }
+      
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        staysActiveInBackground: true
+      })
+
+      const preset = Audio.RecordingOptionsPresets.HIGH_QUALITY
+      const { recording } = await Audio.Recording.createAsync({
+        ...preset,
+        ios: {
+          ...preset.ios,
+          extension: ".wav",
+          audioQuality: Audio.IOSAudioQuality.MAX,
+          outputFormat: Audio.IOSOutputFormat.LINEARPCM
+        },
+        android: {
+          ...preset.ios,
+          extension: ".wav",
+          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT
+        }
+      })
+
+      recordingRef.current = recording
+      setIsRecognizing(true)
+    }catch(err) {
+      console.error("Failed to start recording:", err)
+      recordingRef.current = null
+      setIsRecognizing(false)
+      toast.error("Recording Error", {
+        description: "Could not start recording."
+      })
+    }
+  }
+
+  const stopRecording = async () => {
+    setIsLoading(true)
+    setIsRecognizing(false)
+    
+    try {
+      const recording = recordingRef.current
+      if(!recording) {
+        setIsLoading(false)
+        return
+      }
+
+      await recording.stopAndUnloadAsync()
+      const uri = recording.getURI()
+      recordingRef.current = null
+
+      if(!uri) {
+        setIsLoading(false)
+        toast.error("Recording Error", {
+          description: "No audio was recored."
+        })
+        return
+      }
+      
+      const base64Audio = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64
+      })
+    }catch(err) {
+
+    }
+  }
+
   const handleRevealMandarin = () => {
     if(showMandarin) {
       Animated.timing(fadeAnim, {
@@ -166,7 +263,21 @@ export default function LessonContent ({
 
   const handleOptionPress = (id: number) => {
     if(currentQuestion.type === "listening_mc") {
-      // TODO
+      setSelectedOption(id)
+      setIsCorrect(id === currentQuestion.correctOptionId)
+      setShowResult(true)
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 200,
+          useNativeDriver: true
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true
+        })
+      ]).start()
       return 
     }
 
@@ -220,7 +331,7 @@ export default function LessonContent ({
             isRecognizing={isRecognizing}
             hasListenedToAudio={hasListenedToAudio}
             onPlay={playAudio}
-            onStartRecord={() => {}}
+            onStartRecord={startRecording}
             onStopRecord={() => {}}
             onRevealMandarin={handleRevealMandarin}
             currentQuestion={currentQuestion}
@@ -260,6 +371,23 @@ export default function LessonContent ({
                 optionsSelectionAnim={optionSelectionAnim}
                 isLoading={isLoading}
                 showResult={showResult}
+              />
+            )}
+
+            {currentQuestion.type === "listening_mc" && (
+              <ListeningMultipleChoiceMode 
+                options={currentQuestion.options} 
+                selectedOption={selectedOption} 
+                handleOptionPress={handleOptionPress}
+                isLoading={isLoading}
+                showResult={showResult}
+              />
+            )}
+
+            {currentQuestion.type === "single_response" && (
+              <SingleResponseMode 
+                option={currentQuestion.options[0]} 
+                optionSelectionAnim={optionSelectionAnim}
               />
             )}
           </Animated.View>

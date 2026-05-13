@@ -12,25 +12,6 @@
           "questions": [
             {
               "id": 101,
-              "type": "listening_mc",
-              "mandarin": {
-                "hanzi": "再见",
-                "pinyin": "Zàijiàn",
-                "words": [
-                  { "hanzi": "再", "pinyin": "zài", "english": "again" },
-                  { "hanzi": "见", "pinyin": "jiàn", "english": "see" }
-                ],
-                "breakdown": "Literal: 'See (you) again'. Standard goodbye."
-              },
-              "options": [
-                { "id": 1, "english": "See you later" },
-                { "id": 2, "english": "Goodbye" },
-                { "id": 3, "english": "See you tomorrow" }
-              ],
-              "correctOptionId": 2
-            },
-            {
-              "id": 102,
               "type": "single_response",
               "mandarin": { "hanzi": "早上好", "pinyin": "Zǎoshang hǎo" },
               "options": [
@@ -52,6 +33,25 @@
                   }
                 }
               ]
+            },
+            {
+              "id": 102,
+              "type": "listening_mc",
+              "mandarin": {
+                "hanzi": "再见",
+                "pinyin": "Zàijiàn",
+                "words": [
+                  { "hanzi": "再", "pinyin": "zài", "english": "again" },
+                  { "hanzi": "见", "pinyin": "jiàn", "english": "see" }
+                ],
+                "breakdown": "Literal: 'See (you) again'. Standard goodbye."
+              },
+              "options": [
+                { "id": 1, "english": "See you later" },
+                { "id": 2, "english": "Goodbye" },
+                { "id": 3, "english": "See you tomorrow" }
+              ],
+              "correctOptionId": 2
             },
             {
               "id": 103,

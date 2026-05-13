@@ -1,7 +1,10 @@
 import { ListeningOption } from "@/constants/CourseData"
-import { Animated, StyleSheet, Platform } from "react-native"
+import { Animated, StyleSheet, Platform, View, ScrollView, Pressable } from "react-native"
+import { ThemedText } from "../themed-text"
+import Ionicons from "@expo/vector-icons/Ionicons"
+import { Colors } from "@/constants/theme"
 
-export default function MultipleChoiceMode({
+export default function ListeningMultipleChoiceMode({
   options,
   selectedOption,
   handleOptionPress,
@@ -11,11 +14,50 @@ export default function MultipleChoiceMode({
   options: ListeningOption[]
   selectedOption: number | null
   handleOptionPress: (id: number) => void
-  optionsSelectionAnim: Animated.Value
   isLoading: boolean
   showResult: boolean
 }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.promptContainer}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          What did you just hear?
+        </ThemedText>
+      </View>
 
+      <ScrollView 
+        style={styles.optionsScrollView} 
+        contentContainerStyle={styles.optionsContentContainer}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!isLoading && !showResult}
+      >
+        {options.map((option) => {
+          const isSelected = selectedOption === option.id
+  
+          return (
+            <Pressable
+              key={option.id}
+              style={[
+                styles.optionButton, isSelected && styles.selectedOption,
+                {
+                  backgroundColor: "#ffffff",
+                  borderColor: isSelected? Colors.primaryAccentColor : "#e5e7eb",
+                  opacity: isLoading || showResult? 0.7 : 1,
+                  marginBottom: 16
+                }
+              ]}
+              onPress={() => handleOptionPress(option.id)}
+              disabled={isLoading || showResult}
+            >
+              <ThemedText style={styles.optionText}>
+                {option.english}
+              </ThemedText>
+            </Pressable>
+          )
+        })}
+      </ScrollView>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({

@@ -63,9 +63,10 @@ export default function MultipleChoiceMode({
           </ThemedText>
         </Animated.View>
       </View>
+
       <ScrollView 
         style={styles.optionsScrollView} 
-        contentContainerStyle={styles.optionContainer}
+        contentContainerStyle={styles.optionsContentContainer}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!isLoading && !showResult}
       >
