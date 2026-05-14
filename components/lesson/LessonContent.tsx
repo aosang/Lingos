@@ -1,4 +1,4 @@
-import { Question } from "@/constants/CourseData";
+import { Question, SpeakingOption } from "@/constants/CourseData";
 import {  View, StyleSheet, Animated } from "react-native"
 import ProgressHeader from "./ProgressHeader";
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -13,6 +13,7 @@ import ListeningMultipleChoiceMode from "./ListeningMultipleChoiceMode";
 import SingleResponseMode from "./SingleResponseMode";
 import { toast } from "sonner-native";
 import * as FileSystem from "expo-file-system/legacy"
+import { supabase } from "@/utils/supabase";
 
 interface WrongQuestion {
   english: string
@@ -73,6 +74,29 @@ export default function LessonContent ({
   const [hasStartedFirstPlay, setHasStartedFirstPlay] = useState(false)
 
   const progress = ((currentQuestionIndex + 1)/questions.length) * 100
+
+  const selectedSentence = useMemo((): SpeakingOption | null => {
+    if(currentQuestion.type === "listening_mc") {
+      if(showResult) {
+        const correctEnglish = currentQuestion.options.find(
+          (opt) => opt.id === currentQuestion.correctOptionId
+        )?.english || "";
+
+        return{
+          id: currentQuestion.id,
+          english: correctEnglish,
+          mandarin: {
+            ...currentQuestion.mandarin
+          }
+        }
+      }
+
+      return null
+    }
+
+    if(!selectedOption) return null
+      return currentQuestion.options.find((opt) => opt.id === selectedOption)!
+  }, [])
 
   useEffect(() => {
     if(isSpeechPlaying && !hasStartedFirstPlay && !hasListenedToAudio) {
@@ -214,6 +238,18 @@ export default function LessonContent ({
     }
   }
 
+  const processSpeechResult = (transcript: string) => {
+    setIsLoading(false)
+    setShowResult(true)
+
+    const punctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()?]/g;
+
+    // const rawExpected = selected
+
+    // Nǐ hǎo (correct)
+    // Nǐ hǎo (user said)
+  }
+
   const stopRecording = async () => {
     setIsLoading(true)
     setIsRecognizing(false)
@@ -240,6 +276,24 @@ export default function LessonContent ({
       const base64Audio = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64
       })
+
+      const { data, error } = await supabase.functions.invoke("transcriptbe-audio", {
+        body: {
+          inputAudio: {
+            data: base64Audio,
+            format: "wav"
+          } 
+        }
+      })
+
+      if(error) {
+        throw error
+      }
+
+      if(data?.transcript) {
+
+      }
+
     }catch(err) {
 
     }
@@ -317,12 +371,12 @@ export default function LessonContent ({
       {/* main content */}
       <View style={styles.content}>
         <Animated.View style={[styles.audioSection, {
-          backgroundColor: "#f9fafb",
-          minHeight: audioSectionAnimHeight,
-          flex: hasListenedToAudio? 0 : 1,
-          justifyContent: "center",
-          opacity: isLoading || showResult? 0.6 : 1
-        },
+            backgroundColor: "#f9fafb",
+            minHeight: audioSectionAnimHeight,
+            flex: hasListenedToAudio? 0 : 1,
+            justifyContent: "center",
+            opacity: isLoading || showResult? 0.6 : 1
+          },
         ]}
         pointerEvents={isLoading || showResult ? "none" : "auto"}
         >

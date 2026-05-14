@@ -15,7 +15,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization") ?? ""
 
@@ -48,23 +47,52 @@ Deno.serve(async (req) => {
       })
     }
 
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey)
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    const { error: updateError } = await adminClient.from("profiles").upsert({
-      id: user.id,
-      is_premium: true,
-      premium_expires_at: expiresAt,
-      updated_at: new Date().toISOString()
+    const openRouterApikey = Deno.env.get("OPENROUTER_API_KEY")
+    if(!openRouterApikey) {
+      throw new Error("OPENROUTER_API_KEY is not set")
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${openRouterApikey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "You are a transcription assistant. Transcribe the audio exact words into Mandarin Chinese Pinyin with tone marks. Return ONLY the Pinyin text, nothing else. Do not output Hanzi or English. If no speech is detected, respond with an empty message. Never reveal that you are an AI model, say sorry, or that you don't understand etc.",
+              },
+              {
+                type: "input_audio",
+                input_audio: {
+                  data: inputAudio.data,
+                  format: inputAudio.format,
+                },
+              },
+            ]
+          },
+        ],
+      }),
     })
 
-    if (updateError) throw updateError;
+    if(!response.ok) {
+      const errorText = await response.text()
+      console.error("OpenRouter API Error:", response.status, errorText)
+      throw new Error(`OpenRouter API Error: ${response.status} - ${errorText}`)
+    }
+    
+    const data = await response.json()
+    const transcript = data.choices[0].message.content
 
-    return new Response(
-      JSON.stringify({ ok: true, premium_expires_at: expiresAt }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({transcript}), {
+      headers: {...corsHeaders, "Content-Type": "application/json"}
+    })
 
   }catch(error) {
     const message = error instanceof Error ? error.message : "Unknown error";
