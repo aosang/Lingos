@@ -1,5 +1,5 @@
 import { Question, SpeakingOption } from "@/constants/CourseData";
-import {  View, StyleSheet, Animated } from "react-native"
+import {  View, StyleSheet, Animated, ActivityIndicator } from "react-native"
 import ProgressHeader from "./ProgressHeader";
 import { useState, useRef, useMemo, useEffect } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -7,13 +7,16 @@ import { router } from "expo-router";
 import { Audio, InterruptionModeIOS } from "expo-av"
 import AudioPrompt from "./AudioPrompt";
 import * as Speech from "expo-speech"
-import { recordQuestionListend } from "@/lib/speakingListeningStats";
+import { recordQuestionAnswered, recordQuestionListend } from "@/lib/speakingListeningStats";
 import MultipleChoiceMode from "./MultipleChoiceMode";
 import ListeningMultipleChoiceMode from "./ListeningMultipleChoiceMode";
 import SingleResponseMode from "./SingleResponseMode";
 import { toast } from "sonner-native";
 import * as FileSystem from "expo-file-system/legacy"
 import { supabase } from "@/utils/supabase";
+import { compareTwoStrings } from "string-similarity"
+import { Colors } from "@/constants/theme";
+import { ThemedText } from "../themed-text";
 
 interface WrongQuestion {
   english: string
@@ -96,7 +99,40 @@ export default function LessonContent ({
 
     if(!selectedOption) return null
       return currentQuestion.options.find((opt) => opt.id === selectedOption)!
+  }, [selectedOption, currentQuestion, showResult])
+
+  useEffect(() => {
+    return () => {
+      Speech.stop()
+      if(recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync()
+      }
+    }
   }, [])
+
+  useEffect(() => {
+    Speech.stop()
+    setIsSpeechPlaying(false)
+  }, [currentQuestion])
+
+  useEffect(() => {
+    if(showResult) {
+      if(isCorrect) {
+        if(attemptCount === 0 || (attemptCount > 0 && wrongQuestions.has(currentQuestion.id))) {
+          setCurrentQuestionIndex((prev) => prev + 1)
+        }
+      }else{
+        setQuestionAttempts(prev => ({
+          ...prev,
+          [currentQuestion.id] : (prev[currentQuestion.id] || 0) + 1
+        }))
+
+        if(attemptCount === 0) {
+          setWrongQuestions((prev) => new Set(prev).add(currentQuestion.id))
+        }
+      }
+    }
+  }, [showResult, isCorrect, attemptCount, currentQuestion.id])
 
   useEffect(() => {
     if(isSpeechPlaying && !hasStartedFirstPlay && !hasListenedToAudio) {
@@ -244,7 +280,47 @@ export default function LessonContent ({
 
     const punctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()?]/g;
 
-    // const rawExpected = selected
+    const rawExpected = selectedSentence?.mandarin.pinyin || ""
+    const expected = rawExpected
+    .toLowerCase()
+    .replace(punctuationRegex, "")
+    .replace(/\s+/g, "")
+    .trim()
+
+    const said = transcript
+      .toLowerCase()
+      .replace(punctuationRegex, "")
+      .replace(/\s+/g, "")
+      .trim()
+
+      setTranscription({expected: rawExpected, said: transcript})
+
+      if(!said || !expected) {
+        setIsCorrect(false)
+      }else {
+        const similarity = compareTwoStrings(expected, said)
+        const isSimilarEnough = similarity >= 0.8
+        
+        setIsCorrect(isSimilarEnough)
+
+        if(isSimilarEnough) {
+          void recordQuestionAnswered()
+        }
+      }
+
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 200,
+          useNativeDriver: true
+        }),
+
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true
+        })
+      ]).start()
 
     // Nǐ hǎo (correct)
     // Nǐ hǎo (user said)
@@ -277,7 +353,7 @@ export default function LessonContent ({
         encoding: FileSystem.EncodingType.Base64
       })
 
-      const { data, error } = await supabase.functions.invoke("transcriptbe-audio", {
+      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: {
           inputAudio: {
             data: base64Audio,
@@ -291,11 +367,16 @@ export default function LessonContent ({
       }
 
       if(data?.transcript) {
-
+        processSpeechResult(data.transcript)
+      }else {
+        throw new Error("No transcript returned")
       }
-
     }catch(err) {
-
+      console.log("Failed to start/stop recording", err)
+      setIsLoading(false)
+      toast.error("Transcription Error", {
+        description: "Could not transcribe audio."
+      })
     }
   }
 
@@ -353,10 +434,12 @@ export default function LessonContent ({
         description="Are you sure you want to quit? Your progress will be lost."
         cancelLabel="Cancel"
         confirmLabel="Exit"
-        onConfirm={() => {
+        onConfirm={ async () => {
           setExitConfirmVisible(false)
-
-          // TODO: stop what we were doing
+          Speech.stop()
+          if(recordingRef.current) {
+            await recordingRef.current.stopAndUnloadAsync()
+          }
           router.push("/lessons")
         }}
         onCancel={() => setExitConfirmVisible(false)}
@@ -386,7 +469,7 @@ export default function LessonContent ({
             hasListenedToAudio={hasListenedToAudio}
             onPlay={playAudio}
             onStartRecord={startRecording}
-            onStopRecord={() => {}}
+            onStopRecord={stopRecording}
             onRevealMandarin={handleRevealMandarin}
             currentQuestion={currentQuestion}
             showMandarin={showMandarin}
@@ -444,6 +527,27 @@ export default function LessonContent ({
                 optionSelectionAnim={optionSelectionAnim}
               />
             )}
+          </Animated.View>
+        )}
+
+        {isLoading && (
+          <View style={styles.bottomSection}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primaryAccentColor} />
+              <ThemedText style={[styles.loadingText, {color: Colors.subduedTextColor}]}>
+                Analyzing your pronoucnciation...
+              </ThemedText>
+            </View>
+          </View>
+        )}
+
+        {/* Feedback view */}
+        {showResult && selectedSentence && (
+          <Animated.View style={[
+            styles.feedbackWrapper, 
+            {transform: [{scale: scaleAnim}]}
+          ]}>
+
           </Animated.View>
         )}
       </View>
