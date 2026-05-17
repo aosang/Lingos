@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { Audio, InterruptionModeIOS } from "expo-av"
 import AudioPrompt from "./AudioPrompt";
 import * as Speech from "expo-speech"
-import { recordQuestionAnswered, recordQuestionListend } from "@/lib/speakingListeningStats";
+import { recordQuestionAnswered, recordQuestionListened } from "@/lib/speakingListeningStats";
 import MultipleChoiceMode from "./MultipleChoiceMode";
 import ListeningMultipleChoiceMode from "./ListeningMultipleChoiceMode";
 import SingleResponseMode from "./SingleResponseMode";
@@ -17,6 +17,7 @@ import { supabase } from "@/utils/supabase";
 import { compareTwoStrings } from "string-similarity"
 import { Colors } from "@/constants/theme";
 import { ThemedText } from "../themed-text";
+import { FeedbackView } from "./FeedbackView";
 
 interface WrongQuestion {
   english: string
@@ -34,6 +35,8 @@ export interface LessonStats {
   wrongQuestions?: WrongQuestion[]
 }
 
+const MAX_ATTEMPTS = 3
+
 export default function LessonContent ({
   questions
 } : {
@@ -47,12 +50,12 @@ export default function LessonContent ({
   const [isLoading, setIsLoading] = useState(false)
   const [showResult, setShowResult] = useState(false)
   const [hasListenedToAudio, setHasListenedToAudio] = useState(false)
-  const [isCorrect, setIsCorrect] = useState(false)
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [attemptCount, setAttemptCount] = useState(0)
   const [isRecognizing, setIsRecognizing] = useState(false)
   const recordingRef = useRef<Audio.Recording | null>(null)
   const [transcription, setTranscription] = useState<{
-    expected: String
+    expected: string
     said: string
   } | null>(null)
 
@@ -61,7 +64,7 @@ export default function LessonContent ({
 
   // lesson completion
   const [showCompleteScreen, setShowCompleteScreen] = useState(false)
-  const [lessonsState, setLessonsState] = useState<LessonStats | null>(null)
+  const [lessonStats, setLessonStats] = useState<LessonStats | null>(null)
   const [questionAttempts, setQuestionAttempts] = useState<Record<number, number>>({});
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
   const [wrongQuestions, setWrongQuestions] = useState<Set<number>>(new Set());
@@ -118,8 +121,11 @@ export default function LessonContent ({
   useEffect(() => {
     if(showResult) {
       if(isCorrect) {
-        if(attemptCount === 0 || (attemptCount > 0 && wrongQuestions.has(currentQuestion.id))) {
-          setCurrentQuestionIndex((prev) => prev + 1)
+        if(
+          attemptCount === 0 || 
+          (attemptCount > 0 && wrongQuestions.has(currentQuestion.id))
+        ) {
+          setCorrectAnswersCount((prev) => prev + 1)
         }
       }else{
         setQuestionAttempts(prev => ({
@@ -180,7 +186,7 @@ export default function LessonContent ({
     if(hasListenedToAudio) return
     setHasListenedToAudio(true)
     setIsSpeechPlaying(false)
-    void recordQuestionListend()
+    void recordQuestionListened()
 
     Animated.parallel([
       Animated.timing(audioSectionAnimHeight, {
@@ -255,7 +261,7 @@ export default function LessonContent ({
           outputFormat: Audio.IOSOutputFormat.LINEARPCM
         },
         android: {
-          ...preset.ios,
+          ...preset.android,
           extension: ".wav",
           outputFormat: Audio.AndroidOutputFormat.DEFAULT,
           audioEncoder: Audio.AndroidAudioEncoder.DEFAULT
@@ -321,9 +327,6 @@ export default function LessonContent ({
           useNativeDriver: true
         })
       ]).start()
-
-    // Nǐ hǎo (correct)
-    // Nǐ hǎo (user said)
   }
 
   const stopRecording = async () => {
@@ -372,7 +375,7 @@ export default function LessonContent ({
         throw new Error("No transcript returned")
       }
     }catch(err) {
-      console.log("Failed to start/stop recording", err)
+      console.error("Failed to start/stop recording:", err);
       setIsLoading(false)
       toast.error("Transcription Error", {
         description: "Could not transcribe audio."
@@ -388,6 +391,7 @@ export default function LessonContent ({
         useNativeDriver: true
       }).start(() => setShowMandarin(false))
     }else {
+      setShowMandarin(true)
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 250,
@@ -491,7 +495,7 @@ export default function LessonContent ({
                 isLoading || showResult? 0.5 : 1
               ),
               transform:[
-                {translateY: optionSelectionAnim.interpolate({
+                {translateY: optionsAnimValue.interpolate({
                   inputRange: [0, 1],
                   outputRange: [30, 0]
                 })}
@@ -535,7 +539,7 @@ export default function LessonContent ({
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primaryAccentColor} />
               <ThemedText style={[styles.loadingText, {color: Colors.subduedTextColor}]}>
-                Analyzing your pronoucnciation...
+                Analyzing your pronunciation...
               </ThemedText>
             </View>
           </View>
@@ -547,7 +551,22 @@ export default function LessonContent ({
             styles.feedbackWrapper, 
             {transform: [{scale: scaleAnim}]}
           ]}>
-
+            <FeedbackView 
+              correctOption={selectedSentence}
+              isCorrect={isCorrect}
+              onContinue={() => {}}
+              onRetry={() => {}}
+              attemptCount={isCorrect? attemptCount : attemptCount + 1}
+              maxAttempts={MAX_ATTEMPTS}
+              transcription={
+                transcription
+                  ? {
+                      expected: transcription.expected, 
+                      said: transcription.said
+                    } 
+                  : undefined
+              }
+            />
           </Animated.View>
         )}
       </View>

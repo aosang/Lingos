@@ -50,7 +50,7 @@ export const recordQuestionAnswered = async () => {
   await writeStats(stats)
 }
 
-export const recordQuestionListend = async () => {
+export const recordQuestionListened = async () => {
   const stats = await readStats()
   stats.questionsAnwsered += 1
   stats.minutesSpoken = stats.questionsListened * MINUTES_PER_QUESTIONS
