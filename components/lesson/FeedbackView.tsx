@@ -2,6 +2,7 @@ import { SpeakingOption } from "@/constants/CourseData"
 import { View, StyleSheet } from "react-native"
 import { Colors } from "@/constants/theme"
 import Ionicons from "@expo/vector-icons/Ionicons"
+import { ThemedText } from "../themed-text"
 
 export function FeedbackView ({
   correctOption,
@@ -36,6 +37,9 @@ export function FeedbackView ({
         size={40}
         color={isCorrect? "#34c579" : "#ef4444"}
       />
+        <View style={styles.headerText}>
+          <ThemedText></ThemedText>
+        </View>
     </View>
   </View>
 }
