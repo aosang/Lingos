@@ -1,14 +1,10 @@
+import { getAuthRedirectUri, warnIfSupabaseMayRejectRedirect } from '@/utils/authRedirect'
 import { supabase } from '@/utils/supabase'
 import Entypo from '@expo/vector-icons/Entypo'
-import * as Linking from 'expo-linking'
 import { useState } from "react"
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from 'sonner-native'
-
-/** Deep link / dev client URL; avoids http://localhost which is the emulator itself on Android (unreachable). */
-const redirectTo = Linking.createURL('/')
-
 
 export default function EmailAuth ({
   onBack,
@@ -27,12 +23,18 @@ export default function EmailAuth ({
     }
 
     setLoading(true)
-    
+
+    const emailRedirectTo = getAuthRedirectUri()
+    if (__DEV__) {
+      console.log('[auth] magic link redirect:', emailRedirectTo)
+      warnIfSupabaseMayRejectRedirect(emailRedirectTo)
+    }
+
     try{
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: redirectTo
+          emailRedirectTo,
         }
       })
 
