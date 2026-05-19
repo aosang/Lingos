@@ -117,7 +117,7 @@ export default function LessonsContent () {
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
                 <ThemedText style={styles.statValue}>
-                  {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
+                  {loading? "-" : Math.floor(stats?.minutesSpoken?? 0)}
                 </ThemedText>
                 <Ionicons 
                   name="arrow-up" 
@@ -126,7 +126,7 @@ export default function LessonsContent () {
                   style={{marginLeft: 2}}
                 />
                 <ThemedText style={styles.statChangePositive}>
-                  {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
+                  {Math.floor(stats?.weeklyChange.spoken ?? 0)}
                 </ThemedText>
               </View>
               <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
@@ -150,15 +150,16 @@ export default function LessonsContent () {
                   style={{marginLeft: 2}}
                 />
                 <ThemedText style={styles.statChangePositive}>
-                  {loading? "-" : Math.floor(stats?.weeklyChange.listened?? 0)}
+                  {Math.floor(stats?.weeklyChange.listened ?? 0)}
                 </ThemedText>
               </View>
               <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
-                minutes spoken
+                minutes listened
               </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
+
         {/* Main Content */}
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
@@ -168,10 +169,10 @@ export default function LessonsContent () {
             <View key={chapter.id} style={styles.chapterContainer}>
               <View style={styles.chapterHeader}>
                 <Text style={styles.chapterNumberText}>
-                  chapter {chapter.id}
+                  CHAPTER {chapter.id}
                 </Text>
                 <ThemedText type="title" style={styles.chapterTitleText}>
-                  chapter {chapter.title}
+                  {chapter.title}
                 </ThemedText>
               </View>
 

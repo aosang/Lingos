@@ -1,5 +1,5 @@
 import { SpeakingOption } from "@/constants/CourseData"
-import { View, StyleSheet } from "react-native"
+import { View, StyleSheet, TouchableOpacity } from "react-native"
 import { Colors } from "@/constants/theme"
 import Ionicons from "@expo/vector-icons/Ionicons"
 import { ThemedText } from "../themed-text"
@@ -17,31 +17,148 @@ export function FeedbackView ({
   isCorrect: boolean | null
   onContinue: () => void
   onRetry?: () => void
-  attemptCount?: number
-  maxAttempts?: number
+  attemptCount: number
+  maxAttempts: number
   transcription?: {
     expected: string
     said: string
   }
 }) {
-  return <View style={[
-    styles.container, 
-    {
-      backgroundColor: isCorrect? "#e8f5e9" : "#ffebee",
-      borderColor: isCorrect? "#34c579" : "#ef4444"
-    }
-  ]}>
-    <View style={styles.header}>
-      <Ionicons 
-        name={isCorrect? "checkmark-circle" : "close-circle"}
-        size={40}
-        color={isCorrect? "#34c579" : "#ef4444"}
-      />
+
+  const showRetryButton = onRetry && !isCorrect && attemptCount < maxAttempts
+  const showCorrectAnwser = !isCorrect && attemptCount >= maxAttempts
+
+  return (
+    <View style={[
+      styles.container, 
+      {
+        backgroundColor: isCorrect? "#e8f5e9" : "#ffebee",
+        borderColor: isCorrect? "#34c579" : "#ef4444"
+      }
+    ]}>
+      <View style={styles.header}>
+        <Ionicons 
+          name={isCorrect? "checkmark-circle" : "close-circle"}
+          size={40}
+          color={isCorrect? "#34c579" : "#ef4444"}
+        />
         <View style={styles.headerText}>
-          <ThemedText></ThemedText>
+          <ThemedText style={styles.title}>
+            {isCorrect? "Great job!" : showRetryButton? "Not quiet" : "Keep practising"}
+          </ThemedText>
+
+          {!isCorrect && showRetryButton && (
+            <ThemedText style={[styles.subtitle, {color: Colors.subduedTextColor}]}>
+              Try again - you've got this!
+            </ThemedText>  
+          )}
+
+          {showCorrectAnwser && (
+            <ThemedText style={[styles.subtitle, {color: Colors.subduedTextColor}]}>
+              Here's  what to say next time
+            </ThemedText>  
+          )}
         </View>
+      </View>
+      {/* Transcription feedback */}
+      {transcription && (
+        <View style={styles.transcriptionContainer}>
+          <View style={styles.transcriptionRow}>
+            <ThemedText style={styles.transcriptionLabel}>Expected:</ThemedText>
+            <ThemedText style={styles.transcriptionText}>
+              {transcription.expected}
+            </ThemedText>
+          </View>
+          <View style={styles.transcriptionRow}>
+            <ThemedText style={styles.transcriptionLabel}>You said:</ThemedText>
+            <ThemedText style={[styles.transcriptionText, {
+              color: isCorrect? "#34c579" : "#ef4444"
+            }]}>
+              {transcription.said.charAt(0).toLocaleLowerCase() + transcription.said.slice(1)}
+            </ThemedText>
+          </View>
+        </View>
+      )}
+      {/* Show correct anwser after max attemps  */}
+      {showCorrectAnwser && (
+        <View style={styles.correctAnswerSection}>
+          <View style={styles.correctAnswerHeader}>
+            <Ionicons 
+              name="bulb-outline" 
+              size={20}
+              color={Colors.primaryAccentColor}
+            />
+            <ThemedText style={styles.correctAnswerLabel}>
+              Correct Response:
+            </ThemedText>
+          </View>
+          <View style={styles.correctAnswerContent}>
+            <ThemedText style={styles.correctAnswerEnglish}>
+              {correctOption.english}
+            </ThemedText>
+            <View style={styles.correctAnswerMandarin}>
+              <ThemedText style={styles.correctAnswerPinyin}>
+                {correctOption.mandarin.pinyin}
+              </ThemedText>
+              <ThemedText style={[
+                styles.correctAnswerHanzi, 
+                { color: Colors.subduedTextColor }
+              ]}
+              >
+                {correctOption.mandarin.hanzi}
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Action buttons */}
+      <View style={styles.buttonContainer}>
+        {showRetryButton? (
+          <>
+            <TouchableOpacity 
+              style={[styles.button, styles.retryButton]} 
+              onPress={onRetry}
+            >
+              <Ionicons name="refresh" size={20} color="#fff" />
+              <ThemedText style={styles.retryButtonText}>
+                Try again ({maxAttempts - attemptCount} left)
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.button, styles.skipButton, {borderColor: Colors.subduedTextColor}]} 
+              onPress={onContinue}
+            >
+              <ThemedText style={[styles.skipButtonText, {color: Colors.subduedTextColor}]}>
+                Skip
+              </ThemedText>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.button, styles.continueButton, {borderColor: Colors.subduedTextColor}]} 
+            onPress={onContinue}
+          >
+            <ThemedText style={[styles.continueButtonText]}>
+              {isCorrect? "Continue" : "Next Question"}
+            </ThemedText>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      {/* Attempt indicator */}
+      {!isCorrect && attemptCount > 0 && attemptCount < maxAttempts && (
+        <View style={styles.attemptIndicator}>
+          <View style={styles.attemptDots}>
+            {Array.from({length: maxAttempts}).map((_, i) => (
+              <View key={i} style={[styles.attemptDot, {backgroundColor: i < attemptCount? "#ef4444" : "rgba(107, 114, 128, 0.3)"}]}></View>
+            ))}
+          </View>
+        </View>
+      )}
     </View>
-  </View>
+  )
 }
 
 const styles = StyleSheet.create({
