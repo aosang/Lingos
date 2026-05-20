@@ -23,6 +23,7 @@ import ListeningMultipleChoiceMode from "./ListeningMultipleChoiceMode";
 import MultipleChoiceMode from "./MultipleChoiceMode";
 import ProgressHeader from "./ProgressHeader";
 import SingleResponseMode from "./SingleResponseMode";
+import SentenceBreakdownCard from "./SentenceBreakdownCard";
 
 interface WrongQuestion {
   english: string;
@@ -726,9 +727,40 @@ export default function LessonContent({
           </Animated.View>
         )}
       </View>
+
+      {/* Sentence Breakdown Card */}
+      {currentQuestion.type === "listening_mc" && !isLoading && hasListenedToAudio && (
+        <SentenceBreakdownCard 
+          sentence={{
+            english: 
+              currentQuestion.options.find(
+                (opt) => opt.id === currentQuestion.correctOptionId,
+            )?.english || "",
+            pinyin: currentQuestion.mandarin.pinyin,
+            hanzi: currentQuestion.mandarin.hanzi,
+            words: currentQuestion.mandarin.words,
+            breakdown: currentQuestion.mandarin.breakdown
+          }}
+          disabled={showResult}
+        />
+      )}
+
+      {currentQuestion.type !== "listening_mc" &&
+        !isLoading &&
+        selectedSentence && (
+        <SentenceBreakdownCard
+          sentence={{
+            english: selectedSentence.english,
+            pinyin: selectedSentence.mandarin.pinyin,
+            hanzi: selectedSentence.mandarin.hanzi,
+            words: selectedSentence.mandarin.words,
+            breakdown: selectedSentence.mandarin.breakdown,
+          }}
+          disabled={showResult}
+        />
+      )}
     </View>
-  );
-}
+  )}
 
 const styles = StyleSheet.create({
   container: {
