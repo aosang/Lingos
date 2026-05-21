@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 
 export interface CourseData {
   chapters: Chapter[]
-  scenarios: ConversationScenario
+  scenarios: ConversationScenario[]
 }
 
 export interface ConversationScenario {
