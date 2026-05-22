@@ -1,15 +1,16 @@
-import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView } from "react-native";
+import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, KeyboardAvoidingView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/ctx/AuthContext";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Paywall } from "@/components/subscription/Paywall";
 import { COURSE_DATA, ConversationScenario } from "@/constants/CourseData";
 import { toast } from "sonner-native";
 import { supabase } from "@/utils/supabase";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { createCustomScenarioId, listCustomScenarios, saveCustomScenario } from "@/lib/customScenarios";
 
 export default function ConversationsContent () {
   const { isPremium } = useAuth()
@@ -25,6 +26,25 @@ export default function ConversationsContent () {
   const [customScenarios, setCustomScenarios] = useState<
     ConversationScenario[]
   >([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const load = async () => {
+        try {
+          const saved = await listCustomScenarios();
+          if (isActive) setCustomScenarios(saved);
+        } catch (err) {
+          console.error("Failed to load custom scenarios:", err);
+        }
+      };
+
+      void load();
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   const handleScenarioPress = (scenario: ConversationScenario) => {
     if(scenario.isFree || isPremium) {
@@ -65,60 +85,60 @@ export default function ConversationsContent () {
   }
 
   const handleStartCustomConversation = async () => {
-    // if (!customScene.trim() || isGeneratingScenario) return;
+    if (!customScene.trim() || isGeneratingScenario) return;
 
-    // setIsGeneratingScenario(true);
-    // try {
-    //   const { data, error } = await supabase.functions.invoke(
-    //     "scenario-generate",
-    //     {
-    //       body: {
-    //         myRole: customMyRole,
-    //         aiRole: customAiRole,
-    //         sceneDescription: customScene,
-    //       },
-    //     },
-    //   );
+    setIsGeneratingScenario(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "scenario-generate",
+        {
+          body: {
+            myRole: customMyRole,
+            aiRole: customAiRole,
+            sceneDescription: customScene,
+          },
+        },
+      );
 
-    //   if (error) {
-    //     console.error("Error calling scenario-generate", error);
-    //     toast.error("Could not generate scenario", {
-    //       description: "Please try again in a moment",
-    //     });
-    //     return;
-    //   }
+      if (error) {
+        console.error("Error calling scenario-generate", error);
+        toast.error("Could not generate scenario", {
+          description: "Please try again in a moment",
+        });
+        return;
+      }
 
-    //   const id = createCustomScenarioId();
-    //   const scenario: ConversationScenario = {
-    //     id,
-    //     title: data?.title,
-    //     icon: "color-wand",
-    //     isFree: false,
-    //     description: data?.description,
-    //     goal: data?.goal,
-    //     tasks: data?.tasks,
-    //     difficulty: data?.difficulty,
-    //     phrasebook: data?.phrasebook,
-    //   };
+      const id = createCustomScenarioId();
+      const scenario: ConversationScenario = {
+        id,
+        title: data?.title,
+        icon: "color-wand",
+        isFree: false,
+        description: data?.description,
+        goal: data?.goal,
+        tasks: data?.tasks,
+        difficulty: data?.difficulty,
+        phrasebook: data?.phrasebook,
+      };
 
-    //   await saveCustomScenario(scenario);
-    //   setCustomScenarios((prev) => [scenario, ...prev]);
+      await saveCustomScenario(scenario);
+      setCustomScenarios((prev) => [scenario, ...prev]);
 
-    //   setIsCreatingCustom(false);
-    //   setIsPhrasebookOpen(false);
-    //   setCustomMyRole("");
-    //   setCustomAiRole("");
-    //   setCustomScene("");
-    //   setSelectedScenario(scenario);
-    // } catch (err) {
-    //   console.error("Coudln't generate custom scenario:", err);
-    //   toast.error("Could not start Free Talk", {
-    //     description: "Please try again.",
-    //   });
-    // } finally {
-    //   setIsGeneratingScenario(false);
-    // }
-  };
+      setIsCreatingCustom(false);
+      setIsPhrasebookOpen(false);
+      setCustomMyRole("");
+      setCustomAiRole("");
+      setCustomScene("");
+      setSelectedScenario(scenario);
+    } catch (err) {
+      console.error("Coudln't generate custom scenario:", err);
+      toast.error("Could not start Free Talk", {
+        description: "Please try again.",
+      });
+    } finally {
+      setIsGeneratingScenario(false);
+    }
+  }
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor : "#fff"}}>
@@ -180,7 +200,7 @@ export default function ConversationsContent () {
 
           {/* Scenarios grid */}
           <View style={styles.gridContainer}>
-            {COURSE_DATA.scenarios.map((scenario) => (
+            {[...customScenarios, ...COURSE_DATA.scenarios].map((scenario) => (
               <TouchableOpacity key={scenario.id} style={[
                 styles.scenarioCard, {borderColor: Colors.borderColor}
               ]}
@@ -430,7 +450,6 @@ export default function ConversationsContent () {
                 </TouchableOpacity>
               </View>
             )}
-
           </SafeAreaView>
         </View>
       </Modal>
@@ -475,6 +494,112 @@ export default function ConversationsContent () {
                 <ThemedText type="defaultSemiBold">Create</ThemedText>
                 <View style={{ width: 40 }}></View>
               </View>
+              
+              <ScrollView 
+                contentContainerStyle={styles.modalContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <ThemedText style={{color: Colors.subduedTextColor, marginBottom: 20}}>
+                  Fill out each role and describe in detail the scene and the conversation you want to have
+                </ThemedText>
+
+                <View style={styles.inputGroup}>
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      { borderColor: Colors.borderColor },
+                    ]}
+                  >
+                    <Ionicons
+                      name="person-outline"
+                      size={20}
+                      color={Colors.subduedTextColor}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: Colors.light.text }]}
+                      placeholder="My role"
+                      placeholderTextColor={Colors.subduedTextColor}
+                      value={customMyRole}
+                      onChangeText={setCustomMyRole}
+                    />
+                  </View>
+
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      { borderColor: Colors.borderColor },
+                    ]}
+                  >
+                    <Ionicons
+                      name="happy-outline"
+                      size={20}
+                      color={Colors.subduedTextColor}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: Colors.light.text }]}
+                      placeholder="AI's role"
+                      placeholderTextColor={Colors.subduedTextColor}
+                      value={customAiRole}
+                      onChangeText={setCustomAiRole}
+                    />
+                  </View>
+
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      {
+                        borderColor: Colors.borderColor,
+                        height: 120,
+                        alignItems: "flex-start",
+                        paddingTop: 16,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="image-outline"
+                      size={20}
+                      color={Colors.subduedTextColor}
+                      style={{ marginTop: 5 }}
+                    />
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          color: Colors.light.text,
+                          height: "100%",
+                          textAlignVertical: "top",
+                        },
+                      ]}
+                      placeholder="Set the scene and the chat topic here"
+                      placeholderTextColor={Colors.subduedTextColor}
+                      value={customScene}
+                      multiline
+                      onChangeText={setCustomScene}
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View
+                style={[styles.footer, { borderTopColor: Colors.borderColor }]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.startButton,
+                    {
+                      backgroundColor: Colors.primaryAccentColor,
+                      opacity: customScene && !isGeneratingScenario ? 1 : 0.5,
+                    },
+                  ]}
+                  disabled={!customScene || isGeneratingScenario}
+                  onPress={handleStartCustomConversation}
+                >
+                  <ThemedText style={styles.startButtonText}>
+                    {isGeneratingScenario ? "Generating..." : "Start chatting"}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+
             </KeyboardAvoidingView>
           </SafeAreaView>
         </View>
