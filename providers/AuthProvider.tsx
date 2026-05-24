@@ -8,8 +8,8 @@ export default function AuthProvider({children}: PropsWithChildren) {
   const [ profile, setProfile ] = useState<any | null>(null)
   const [ loading, setLoading ] = useState(true)
 
-  const premiumExpiresAT:string | null = profile?.premium_expires_at ?? null
-  const isPremium = !!profile?.is_premium && (!premiumExpiresAT || new Date(premiumExpiresAT) > new Date())
+  const premiumExpiresAt:string | null = profile?.premium_expires_at ?? null
+  const isPremium = !!profile?.is_premium && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date())
 
   const loadProfile = async (s: Session | null) => {
     if(!s) {
@@ -53,7 +53,7 @@ export default function AuthProvider({children}: PropsWithChildren) {
     loading,
     isAdmin: false,
     isPremium,
-    premiumExpiresAT,
+    premiumExpiresAt,
     refreshProfile
   }}>
     {children}

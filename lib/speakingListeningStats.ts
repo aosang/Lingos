@@ -21,7 +21,7 @@ const readStats = async (): Promise<SpeakingListeningStats> => {
       return getDefaultStats();
     }
 
-    return JSON.parse(raw) as SpeakingListeningStats;
+    return normalizeStats(JSON.parse(raw) as Partial<SpeakingListeningStats>);
   } catch {
     return getDefaultStats();
   }
@@ -39,6 +39,24 @@ const getDefaultStats = (): SpeakingListeningStats => ({
   questionsListened: 0,
   conversationTurns: 0,
 });
+
+const toFiniteNumber = (value: unknown, fallback: number): number => {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+/** Merge persisted JSON with defaults — partial/corrupt AsyncStorage must not produce NaN. */
+const normalizeStats = (raw: Partial<SpeakingListeningStats>): SpeakingListeningStats => {
+  const defaults = getDefaultStats();
+  return {
+    minutesSpoken: toFiniteNumber(raw.minutesSpoken, defaults.minutesSpoken),
+    minutesListened: toFiniteNumber(raw.minutesListened, defaults.minutesListened),
+    lastUpdate: typeof raw.lastUpdate === "string" ? raw.lastUpdate : defaults.lastUpdate,
+    questionsAnswered: toFiniteNumber(raw.questionsAnswered, defaults.questionsAnswered),
+    questionsListened: toFiniteNumber(raw.questionsListened, defaults.questionsListened),
+    conversationTurns: toFiniteNumber(raw.conversationTurns, defaults.conversationTurns),
+  };
+};
 
 export const recordQuestionAnswered = async () => {
   const stats = await readStats();
@@ -66,12 +84,15 @@ export const recordConversationTurn = async () => {
   await writeStats(stats);
 };
 
+const roundStat = (value: number) =>
+  Math.round(toFiniteNumber(value, 0) * 10) / 10;
+
 export const getWeeklyStats = async () => {
   const stats = await readStats();
 
   return {
-    minutesSpoken: Math.round(stats.minutesSpoken * 10) / 10,
-    minutesListened: Math.round(stats.minutesListened * 10) / 10,
+    minutesSpoken: roundStat(stats.minutesSpoken),
+    minutesListened: roundStat(stats.minutesListened),
     weeklyChange: {
       spoken: 0,
       listened: 0,

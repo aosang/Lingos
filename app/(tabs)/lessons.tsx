@@ -117,7 +117,7 @@ export default function LessonsContent () {
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
                 <ThemedText style={styles.statValue}>
-                  {loading? "-" : Math.floor(stats?.minutesSpoken?? 0)}
+                  {loading ? "-" : Math.floor(stats?.minutesSpoken ?? 0)}
                 </ThemedText>
                 <Ionicons 
                   name="arrow-up" 
@@ -126,7 +126,7 @@ export default function LessonsContent () {
                   style={{marginLeft: 2}}
                 />
                 <ThemedText style={styles.statChangePositive}>
-                  {Math.floor(stats?.weeklyChange.spoken ?? 0)}
+                  {Math.floor(stats?.weeklyChange?.spoken ?? 0)}
                 </ThemedText>
               </View>
               <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>
@@ -141,7 +141,7 @@ export default function LessonsContent () {
             <TouchableOpacity style={styles.statItem}>
               <View style={styles.statValueContainer}>
                 <ThemedText style={styles.statValue}>
-                  {loading? "-" : Math.floor(stats?.minutesListened?? 0)}
+                  {loading ? "-" : Math.floor(stats?.minutesListened ?? 0)}
                 </ThemedText>
                 <Ionicons 
                   name="arrow-up" 
@@ -150,7 +150,7 @@ export default function LessonsContent () {
                   style={{marginLeft: 2}}
                 />
                 <ThemedText style={styles.statChangePositive}>
-                  {Math.floor(stats?.weeklyChange.listened ?? 0)}
+                  {Math.floor(stats?.weeklyChange?.listened ?? 0)}
                 </ThemedText>
               </View>
               <ThemedText style={[styles.statLabel, {color: Colors.subduedTextColor}]}>

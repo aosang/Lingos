@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.andreasstudios.lingos"
+      "bundleIdentifier": "com.andreasstudios.lingos",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access for pronunciation practice."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.andreasstudios.lingos"
+      "package": "com.andreasstudios.lingos",
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "output": "static",
@@ -42,7 +46,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for pronunciation practice"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
