@@ -47,10 +47,10 @@ const MOTIVATIONS = [{
   icon: "game-controller-outline"
 }]
 
-const INTERSTS = [
+const INTERESTS = [
   "Food & Dining",
   "Business",
-  "Daliy life",
+  "Daily Life",
   "Technology",
   "Art",
   "Music",
@@ -65,7 +65,7 @@ export default function OnboardingScreen () {
   const [level, setLevel] = useState<string | null>(null)
   const [motivations, setMotivations] = useState<string[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
-  const [showPayWall, setShowPayWall] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   const { refreshProfile } = useAuth()
 
@@ -89,7 +89,7 @@ export default function OnboardingScreen () {
   const saveProfile = async () => {
     try {
       const {data: {user}} = await supabase.auth.getUser()
-      if(!user) throw new Error("Now user found")
+      if(!user) throw new Error("No user found")
       
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
@@ -104,7 +104,7 @@ export default function OnboardingScreen () {
       if(error) throw error
       await refreshProfile()
 
-      setShowPayWall(true)
+      setShowPaywall(true)
 
     }catch(error) {
       console.error("Error saving profile:", error)
@@ -112,7 +112,7 @@ export default function OnboardingScreen () {
     }
   }
 
-  const hanldeContinue = () => {
+  const handleContinue = () => {
     if(step < 3) {
       setStep(step + 1)
     }else {
@@ -120,7 +120,7 @@ export default function OnboardingScreen () {
     }
   }
 
-  const toggleMovitation = (id: string) => {
+  const toggleMotivation = (id: string) => {
     if(motivations.includes(id)) {
       setMotivations(motivations.filter((m) => m !== id))
     }else {
@@ -187,8 +187,9 @@ export default function OnboardingScreen () {
   const renderStep2Motivation = () => (
     <View style={styles.stepContainer}>
       <ThemedText type="title" style={styles.title}>
-        Why are you learing Chinese?
+        Why are you learning Chinese?
       </ThemedText>
+      <ThemedText style={styles.subtitle}>Select all the apply.</ThemedText>
       <ScrollView contentContainerStyle={{rowGap: 16}} style={{ marginTop: 10 }}>
         {MOTIVATIONS.map((m) => {
           const isSelected = motivations.includes(m.id)
@@ -200,7 +201,7 @@ export default function OnboardingScreen () {
                 borderColor: Colors.primaryAccentColor,
                 backgroundClip: "#fff5f0"
               }]}
-              onPress={() =>toggleMovitation(m.id)}
+              onPress={() =>toggleMotivation(m.id)}
             >
               <Ionicons 
                 name={m.icon as any} 
@@ -229,7 +230,7 @@ export default function OnboardingScreen () {
       </ThemedText>
       <ThemedText style={styles.subtitle}>Select all the apply.</ThemedText>
       <View style={styles.tagsContainer}>
-        {INTERSTS.map((i) => {
+        {INTERESTS.map((i) => {
           const isSelected = selectedInterests.includes(i)
 
           return (
@@ -293,7 +294,7 @@ export default function OnboardingScreen () {
             style={[styles.continueButton, {
               backgroundColor: isNextEnabled()? Colors.primaryAccentColor : "#E5E7EB"
             }]}
-            onPress={hanldeContinue}
+            onPress={handleContinue}
             disabled={!isNextEnabled()}
           >
             <ThemedText style={styles.continueButtonText}>
@@ -304,8 +305,8 @@ export default function OnboardingScreen () {
       </KeyboardAvoidingView>
       
       <Paywall 
-        visible={showPayWall} 
-        onClose={() => router.replace('/explore')}
+        visible={showPaywall} 
+        onClose={() => router.replace('/lessons')}
       >  
       </Paywall>
     </SafeAreaView>

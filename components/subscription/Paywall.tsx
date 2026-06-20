@@ -107,8 +107,8 @@ export function Paywall ({
       await refreshProfile()
       onClose()
     }catch(err) {
-      console.error("Failed to start trail:", err)
-      toast.error("Could not start trail. Please try again.")
+      console.error("Failed to start trial:", err)
+      toast.error("Could not start trial. Please try again.")
     }finally {
       setIsStartingTrial(false)
     }
